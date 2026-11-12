@@ -1,0 +1,86 @@
+:host {
+  display: block;
+  font-family: Arial, sans-serif;
+  color: #222;
+}
+
+main {
+  max-width: 1000px;
+  margin: 40px auto;
+  padding: 0 24px;
+}
+
+h1 {
+  margin-bottom: 28px;
+}
+
+section {
+  margin-bottom: 36px;
+}
+
+form {
+  max-width: 420px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+form label {
+  display: block;
+  margin: 14px 0 6px;
+  font-weight: 600;
+}
+
+form input {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  font: inherit;
+}
+
+form button {
+  margin-top: 20px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 4px;
+  background: #222;
+  color: white;
+  font: inherit;
+  cursor: pointer;
+}
+
+form button:disabled {
+  background: #888;
+  cursor: not-allowed;
+}
+
+article {
+  max-width: 280px;
+  margin: 12px 12px 12px 0;
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+article h3 {
+  margin-top: 0;
+}
+
+article p {
+  color: #555;
+}
+
+@media (max-width: 500px) {
+  main {
+    margin-top: 24px;
+    padding: 0 16px;
+  }
+
+  form {
+    box-sizing: border-box;
+    width: 100%;
+  }
+}

@@ -1,0 +1,39 @@
+<main>
+  <h1>Browse products</h1>
+
+  <label for="categoryFilter">Filter by category:</label>
+  <select
+    id="categoryFilter"
+    name="categoryFilter"
+    [(ngModel)]="categoryFilter"
+  >
+    <option value="">All categories</option>
+    <option value="Men">Men</option>
+    <option value="Women">Women</option>
+    <option value="Kids">Kids</option>
+  </select>
+
+  <button type="button" (click)="filterProducts()">Filter</button>
+
+  <p>{{ errorMessage }}</p>
+
+  <section>
+    @for (product of products; track product.id) {
+      <article>
+        @if (product.imageUrl) {
+          <img
+            [src]="getImageUrl(product.imageUrl)"
+            [alt]="product.name"
+            class="product-image"
+          >
+        }
+        <h2>{{ product.name }}</h2>
+        <p>{{ product.description }}</p>
+        <p>Category: {{ product.category }}</p>
+        <strong>₹{{ product.price }}</strong>
+      </article>
+    } @empty {
+      <p>No products found.</p>
+    }
+  </section>
+</main>

@@ -1,0 +1,30 @@
+# Build results (.NET)
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+
+# Visual Studio / VS Code
+.vs/
+*.user
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Node & Angular
+node_modules/
+dist/
+.angular/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Uploaded product images (keep structure, ignore uploaded files)
+backend/wwwroot/uploads/products/*
+!backend/wwwroot/uploads/products/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db

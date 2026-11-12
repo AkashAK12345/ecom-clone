@@ -1,0 +1,56 @@
+<main>
+  <h1>Seller page</h1>
+  <h2>Add a product</h2>
+
+  <form #productForm="ngForm" (ngSubmit)="addProduct(fileInput)">
+    <label for="name">Product name</label>
+    <input id="name" name="name" [(ngModel)]="newProduct.name" required>
+
+    <label for="description">Description</label>
+    <input
+      id="description"
+      name="description"
+      [(ngModel)]="newProduct.description"
+    >
+
+    <label for="category">Category</label>
+    <select
+      id="category"
+      name="category"
+      [(ngModel)]="newProduct.category"
+      required
+    >
+      <option value="" disabled>Select a category</option>
+      <option value="Men">Men</option>
+      <option value="Women">Women</option>
+      <option value="Kids">Kids</option>
+    </select>
+
+    <label for="price">Price (₹)</label>
+    <input
+      id="price"
+      name="price"
+      type="number"
+      min="0.01"
+      step="0.01"
+      [(ngModel)]="newProduct.price"
+      required
+    >
+
+    <label for="image">Product image</label>
+    <input
+      #fileInput
+      id="image"
+      name="image"
+      type="file"
+      accept=".jpg,.jpeg,.png,.webp,.gif,image/*"
+      (change)="onFileSelected($event)"
+    >
+
+    <button type="submit" [disabled]="productForm.invalid">
+      Add product
+    </button>
+  </form>
+
+  <p>{{ message }}</p>
+</main>
