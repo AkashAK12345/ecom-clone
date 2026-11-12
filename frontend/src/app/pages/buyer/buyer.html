@@ -31,6 +31,13 @@
         <p>{{ product.description }}</p>
         <p>Category: {{ product.category }}</p>
         <strong>₹{{ product.price }}</strong>
+        <p>
+          @if (product.quantity > 0) {
+            Stock: {{ product.quantity }}
+          } @else {
+            <span class="out-of-stock">Out of stock</span>
+          }
+        </p>
       </article>
     } @empty {
       <p>No products found.</p>

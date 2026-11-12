@@ -19,7 +19,8 @@ export class Seller {
     name: '',
     description: '',
     category: '',
-    price: 0
+    price: 0,
+    quantity: 0
   };
 
   onFileSelected(event: Event): void {
@@ -57,6 +58,18 @@ export class Seller {
   addProduct(fileInput?: HTMLInputElement): void {
     this.message = '';
 
+    if (
+      this.newProduct.quantity === null ||
+      this.newProduct.quantity === undefined ||
+      isNaN(this.newProduct.quantity) ||
+      !Number.isInteger(Number(this.newProduct.quantity)) ||
+      this.newProduct.quantity < 0 ||
+      this.newProduct.quantity > 100000
+    ) {
+      this.message = 'Stock quantity must be a whole number between 0 and 100,000.';
+      return;
+    }
+
     if (!this.selectedFile) {
       this.message = 'Please select a product image.';
       return;
@@ -69,6 +82,7 @@ export class Seller {
     }
     formData.append('category', this.newProduct.category);
     formData.append('price', this.newProduct.price.toString());
+    formData.append('quantity', this.newProduct.quantity.toString());
     formData.append('image', this.selectedFile);
 
     this.productService.createProduct(formData).subscribe({
@@ -78,7 +92,8 @@ export class Seller {
           name: '',
           description: '',
           category: '',
-          price: 0
+          price: 0,
+          quantity: 0
         };
         this.selectedFile = null;
         if (fileInput) {

@@ -7,3 +7,8 @@
   margin-bottom: 0.5rem;
 }
 
+.out-of-stock {
+  color: #c00;
+  font-weight: bold;
+}
+

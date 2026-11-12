@@ -37,6 +37,18 @@
       required
     >
 
+    <label for="quantity">Stock quantity</label>
+    <input
+      id="quantity"
+      name="quantity"
+      type="number"
+      min="0"
+      max="100000"
+      step="1"
+      [(ngModel)]="newProduct.quantity"
+      required
+    >
+
     <label for="image">Product image</label>
     <input
       #fileInput

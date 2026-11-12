@@ -19,8 +19,8 @@ public class CreateProductDto
     [Range(0.01, 1000000, ErrorMessage = "Price must be between 0.01 and 1,000,000.")]
     public decimal Price { get; set; }
 
-    [Range(0, 100000)]
-    public int Quantity { get; set; } = 10;
+    [Range(0, 100000, ErrorMessage = "Stock quantity must be between 0 and 100,000.")]
+    public int Quantity { get; set; }
 
     [Required(ErrorMessage = "Product image is required.")]
     public IFormFile? Image { get; set; }

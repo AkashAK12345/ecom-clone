@@ -28,6 +28,11 @@ public class ProductsController : ControllerBase
             return BadRequest("Product image is required.");
         }
 
+        if (dto.Quantity < 0 || dto.Quantity > 100000)
+        {
+            return BadRequest("Stock quantity must be between 0 and 100,000.");
+        }
+
         const long maxFileSize = 5 * 1024 * 1024; // 5 MB
         if (dto.Image.Length > maxFileSize)
         {
@@ -74,7 +79,7 @@ public class ProductsController : ControllerBase
             Description = dto.Description,
             Category = dto.Category,
             Price = dto.Price,
-            Quantity = dto.Quantity > 0 ? dto.Quantity : 10,
+            Quantity = dto.Quantity,
             ImageUrl = relativeUrl
         };
 
