@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Product, ProductService } from '../../services/product';
 
@@ -11,6 +11,7 @@ import { Product, ProductService } from '../../services/product';
 })
 export class Seller implements OnInit {
   private productService = inject(ProductService);
+  private cdr = inject(ChangeDetectorRef);
 
   products: Product[] = [];
   message = '';
@@ -32,8 +33,14 @@ export class Seller implements OnInit {
 
   loadProducts(): void {
     this.productService.getProducts().subscribe({
-      next: (products) => (this.products = products),
-      error: () => (this.message = 'Could not load products.')
+      next: (products) => {
+        this.products = products;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.message = 'Could not load products.';
+        this.cdr.markForCheck();
+      }
     });
   }
 
@@ -58,6 +65,7 @@ export class Seller implements OnInit {
       this.message = 'Invalid image format. Allowed formats: .jpg, .jpeg, .png, .webp, .gif.';
       this.selectedFile = null;
       input.value = '';
+      this.cdr.markForCheck();
       return;
     }
 
@@ -66,11 +74,13 @@ export class Seller implements OnInit {
       this.message = 'Image size exceeds the 5 MB limit.';
       this.selectedFile = null;
       input.value = '';
+      this.cdr.markForCheck();
       return;
     }
 
     this.selectedFile = file;
     this.message = '';
+    this.cdr.markForCheck();
   }
 
   editProduct(product: Product, fileInput?: HTMLInputElement): void {
@@ -88,6 +98,7 @@ export class Seller implements OnInit {
     if (fileInput) {
       fileInput.value = '';
     }
+    this.cdr.markForCheck();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -106,6 +117,7 @@ export class Seller implements OnInit {
       fileInput.value = '';
     }
     this.message = '';
+    this.cdr.markForCheck();
   }
 
   saveProduct(fileInput?: HTMLInputElement): void {
@@ -143,9 +155,10 @@ export class Seller implements OnInit {
     if (this.editingProductId) {
       this.productService.updateProduct(this.editingProductId, formData).subscribe({
         next: () => {
-          this.message = 'Product updated successfully.';
           this.cancelEdit(fileInput);
+          this.message = 'Product updated successfully.';
           this.loadProducts();
+          this.cdr.markForCheck();
         },
         error: (err) => {
           if (typeof err?.error === 'string') {
@@ -155,14 +168,16 @@ export class Seller implements OnInit {
           } else {
             this.message = 'Could not update the product.';
           }
+          this.cdr.markForCheck();
         }
       });
     } else {
       this.productService.createProduct(formData).subscribe({
         next: () => {
-          this.message = 'Product added successfully.';
           this.cancelEdit(fileInput);
+          this.message = 'Product added successfully.';
           this.loadProducts();
+          this.cdr.markForCheck();
         },
         error: (err) => {
           if (typeof err?.error === 'string') {
@@ -172,6 +187,7 @@ export class Seller implements OnInit {
           } else {
             this.message = 'Could not add the product.';
           }
+          this.cdr.markForCheck();
         }
       });
     }
