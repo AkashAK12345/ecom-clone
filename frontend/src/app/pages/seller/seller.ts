@@ -161,7 +161,9 @@ export class Seller implements OnInit {
           this.cdr.markForCheck();
         },
         error: (err) => {
-          if (typeof err?.error === 'string') {
+          if (err?.status === 401 || err?.status === 403) {
+            this.message = 'You must be logged in as a Seller to update products.';
+          } else if (typeof err?.error === 'string') {
             this.message = err.error;
           } else if (err?.error?.title) {
             this.message = err.error.title;
@@ -180,7 +182,9 @@ export class Seller implements OnInit {
           this.cdr.markForCheck();
         },
         error: (err) => {
-          if (typeof err?.error === 'string') {
+          if (err?.status === 401 || err?.status === 403) {
+            this.message = 'You must be logged in as a Seller to add products.';
+          } else if (typeof err?.error === 'string') {
             this.message = err.error;
           } else if (err?.error?.title) {
             this.message = err.error.title;

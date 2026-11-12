@@ -1,4 +1,5 @@
 using ECommerce.Api.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ECommerce.Api.Models;
@@ -21,6 +22,7 @@ public class ProductsController : ControllerBase
 
     [HttpPost]
     [Consumes("multipart/form-data")]
+    [Authorize(Roles = "Seller")]
     public async Task<IActionResult> AddProduct([FromForm] CreateProductDto dto)
     {
         if (dto.Image == null || dto.Image.Length == 0)
@@ -102,6 +104,7 @@ public class ProductsController : ControllerBase
 
     [HttpPut("{id}")]
     [Consumes("multipart/form-data")]
+    [Authorize(Roles = "Seller")]
     public async Task<IActionResult> UpdateProduct(int id, [FromForm] UpdateProductDto dto)
     {
         var product = await _db.Products.FindAsync(id);

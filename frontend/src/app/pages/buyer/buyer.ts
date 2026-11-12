@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Product, ProductService } from '../../services/product';
+import { AuthService } from '../../services/auth';
 
 @Component({
   selector: 'app-buyer',
@@ -11,6 +12,7 @@ import { Product, ProductService } from '../../services/product';
 })
 export class Buyer implements OnInit {
   private productService = inject(ProductService);
+  private authService = inject(AuthService);
   private cdr = inject(ChangeDetectorRef);
 
   products: Product[] = [];
@@ -74,6 +76,18 @@ export class Buyer implements OnInit {
     this.orderMessage = '';
     this.orderErrorMessage = '';
 
+    if (!this.authService.isLoggedIn()) {
+      this.orderErrorMessage = 'Please log in as a Buyer to place an order.';
+      this.cdr.markForCheck();
+      return;
+    }
+
+    if (this.authService.getRole() !== 'Buyer') {
+      this.orderErrorMessage = 'Only buyers are permitted to place orders.';
+      this.cdr.markForCheck();
+      return;
+    }
+
     const quantity = this.orderQuantities[product.id];
     if (
       quantity === null ||
@@ -118,7 +132,11 @@ export class Buyer implements OnInit {
       },
       error: (err) => {
         this.isOrderingProductId = null;
-        if (typeof err?.error === 'string') {
+        if (err?.status === 401) {
+          this.orderErrorMessage = 'You must be logged in as a Buyer to place an order.';
+        } else if (err?.status === 403) {
+          this.orderErrorMessage = 'Only buyers are authorized to place orders.';
+        } else if (typeof err?.error === 'string') {
           this.orderErrorMessage = err.error;
         } else if (err?.error?.message) {
           this.orderErrorMessage = err.error.message;

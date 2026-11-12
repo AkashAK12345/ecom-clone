@@ -1,0 +1,49 @@
+<main>
+  <h1>Create an account</h1>
+
+  <form (ngSubmit)="onSubmit()">
+    <label for="email">Email address</label>
+    <input
+      id="email"
+      name="email"
+      type="email"
+      [(ngModel)]="email"
+      placeholder="name@example.com"
+      required
+    >
+
+    <label for="password">Password (minimum 6 characters)</label>
+    <input
+      id="password"
+      name="password"
+      type="password"
+      [(ngModel)]="password"
+      placeholder="Enter a secure password"
+      minlength="6"
+      required
+    >
+
+    <label for="role">Account type</label>
+    <select
+      id="role"
+      name="role"
+      [(ngModel)]="role"
+      required
+    >
+      <option value="Buyer">Buyer (browse and order products)</option>
+      <option value="Seller">Seller (add and manage products)</option>
+    </select>
+
+    <button type="submit" [disabled]="isLoading">
+      {{ isLoading ? 'Registering...' : 'Register' }}
+    </button>
+  </form>
+
+  @if (errorMessage) {
+    <p class="error-message">{{ errorMessage }}</p>
+  }
+
+  <p class="switch-link">
+    Already have an account? <a routerLink="/login">Log in here</a>
+  </p>
+</main>
