@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectorRef } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { AuthService } from './services/auth';
 
@@ -11,8 +11,10 @@ import { AuthService } from './services/auth';
 })
 export class App {
   readonly authService = inject(AuthService);
+  private cdr = inject(ChangeDetectorRef);
 
   logout(): void {
     this.authService.logout();
+    this.cdr.markForCheck();
   }
 }

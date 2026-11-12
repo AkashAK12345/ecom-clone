@@ -74,6 +74,11 @@ This document records technical issues, environment hurdles, root causes, and ve
   npm.cmd install --legacy-peer-deps
   ```
 
+### 1.9 Stale Background Dev Server Serving Outdated Build on Port 4200
+* **Symptom / Error**: After implementing new templates, components, and routing (such as auth links and navigation), the browser continues to display old pre-auth pages without the new links.
+* **Cause**: An earlier `ng serve` process started hours prior remained running in the background holding port 4200, serving stale cached pre-rendered pages instead of current code.
+* **Fix**: Inspect listening ports with `netstat -ano | findstr 4200` or `Get-NetTCPConnection -LocalPort 4200`, terminate the stale process (`Stop-Process -Id <PID> -Force`), and restart the dev server with `npm start` (or `cmd /c "npm --prefix frontend start"`).
+
 ---
 
 ## 2. Application & Architecture Issues
@@ -133,3 +138,4 @@ This document records technical issues, environment hurdles, root causes, and ve
   1. Utilized ASP.NET Core's standard `PasswordHasher<User>` (PBKDF2 with HMAC-SHA256/SHA512) for salting, hashing, and verifying user passwords.
   2. Stored the JWT secret securely in .NET Secret Manager (`dotnet user-secrets set "JwtSettings:Secret" "<secret>"`), keeping sensitive credentials out of `appsettings.json` and version control.
   3. Added role claims to the JWT payload (`ClaimTypes.Role`) so backend `[Authorize(Roles = "Seller")]` and `[Authorize(Roles = "Buyer")]` attributes enforce role authorization deterministically.
+
