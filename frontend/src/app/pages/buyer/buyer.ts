@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Product, ProductService } from '../../services/product';
 
@@ -11,6 +11,7 @@ import { Product, ProductService } from '../../services/product';
 })
 export class Buyer implements OnInit {
   private productService = inject(ProductService);
+  private cdr = inject(ChangeDetectorRef);
 
   products: Product[] = [];
   categoryFilter = '';
@@ -33,8 +34,12 @@ export class Buyer implements OnInit {
             this.orderQuantities[product.id] = 1;
           }
         }
+        this.cdr.markForCheck();
       },
-      error: () => this.errorMessage = 'Could not load products.'
+      error: () => {
+        this.errorMessage = 'Could not load products.';
+        this.cdr.markForCheck();
+      }
     });
   }
 
@@ -52,8 +57,12 @@ export class Buyer implements OnInit {
             this.orderQuantities[product.id] = 1;
           }
         }
+        this.cdr.markForCheck();
       },
-      error: () => this.errorMessage = 'Could not filter products.'
+      error: () => {
+        this.errorMessage = 'Could not filter products.';
+        this.cdr.markForCheck();
+      }
     });
   }
 
@@ -74,20 +83,25 @@ export class Buyer implements OnInit {
       quantity <= 0
     ) {
       this.orderErrorMessage = `Please enter a valid whole number quantity of at least 1 for ${product.name}.`;
+      this.cdr.markForCheck();
       return;
     }
 
     if (product.quantity <= 0) {
       this.orderErrorMessage = `Product '${product.name}' is out of stock.`;
+      this.cdr.markForCheck();
       return;
     }
 
     if (quantity > product.quantity) {
       this.orderErrorMessage = `Requested quantity (${quantity}) exceeds available stock (${product.quantity}) for ${product.name}.`;
+      this.cdr.markForCheck();
       return;
     }
 
     this.isOrderingProductId = product.id;
+    this.cdr.markForCheck();
+
     this.productService.placeOrder(product.id, Number(quantity)).subscribe({
       next: (res: any) => {
         this.isOrderingProductId = null;
@@ -100,6 +114,7 @@ export class Buyer implements OnInit {
         } else {
           this.loadProducts();
         }
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.isOrderingProductId = null;
@@ -113,6 +128,7 @@ export class Buyer implements OnInit {
           this.orderErrorMessage = 'Could not place order.';
         }
         this.orderMessage = '';
+        this.cdr.markForCheck();
       }
     });
   }
