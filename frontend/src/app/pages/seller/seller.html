@@ -1,8 +1,9 @@
 <main>
   <h1>Seller page</h1>
-  <h2>Add a product</h2>
 
-  <form #productForm="ngForm" (ngSubmit)="addProduct(fileInput)">
+  <h2>{{ editingProductId ? 'Edit product' : 'Add a product' }}</h2>
+
+  <form #productForm="ngForm" (ngSubmit)="saveProduct(fileInput)">
     <label for="name">Product name</label>
     <input id="name" name="name" [(ngModel)]="newProduct.name" required>
 
@@ -49,7 +50,20 @@
       required
     >
 
-    <label for="image">Product image</label>
+    <label for="image">
+      Product image
+      @if (editingProductId) {
+        <small>(optional - leave empty to keep current image)</small>
+      }
+    </label>
+
+    @if (editingProductId && editingProductCurrentImageUrl) {
+      <div class="current-image-preview">
+        <p>Current image:</p>
+        <img [src]="getImageUrl(editingProductCurrentImageUrl)" alt="Current product image">
+      </div>
+    }
+
     <input
       #fileInput
       id="image"
@@ -59,10 +73,51 @@
       (change)="onFileSelected($event)"
     >
 
-    <button type="submit" [disabled]="productForm.invalid">
-      Add product
-    </button>
+    <div class="form-actions">
+      <button type="submit" [disabled]="productForm.invalid">
+        {{ editingProductId ? 'Save changes' : 'Add product' }}
+      </button>
+
+      @if (editingProductId) {
+        <button type="button" class="cancel-button" (click)="cancelEdit(fileInput)">
+          Cancel edit
+        </button>
+      }
+    </div>
   </form>
 
   <p>{{ message }}</p>
+
+  <section class="seller-products">
+    <h2>Your products</h2>
+
+    @for (product of products; track product.id) {
+      <article class="seller-product-card">
+        @if (product.imageUrl) {
+          <img
+            [src]="getImageUrl(product.imageUrl)"
+            [alt]="product.name"
+            class="product-image"
+          >
+        }
+        <h3>{{ product.name }}</h3>
+        <p>{{ product.description }}</p>
+        <p>Category: {{ product.category }}</p>
+        <strong>₹{{ product.price }}</strong>
+        <p>
+          @if (product.quantity > 0) {
+            Stock: {{ product.quantity }}
+          } @else {
+            <span class="out-of-stock">Out of stock</span>
+          }
+        </p>
+
+        <button type="button" (click)="editProduct(product, fileInput)">
+          Edit
+        </button>
+      </article>
+    } @empty {
+      <p>No products listed yet.</p>
+    }
+  </section>
 </main>

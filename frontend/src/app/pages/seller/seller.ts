@@ -1,6 +1,6 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ProductService } from '../../services/product';
+import { Product, ProductService } from '../../services/product';
 
 @Component({
   selector: 'app-seller',
@@ -9,11 +9,14 @@ import { ProductService } from '../../services/product';
   templateUrl: './seller.html',
   styleUrl: './seller.css'
 })
-export class Seller {
+export class Seller implements OnInit {
   private productService = inject(ProductService);
 
+  products: Product[] = [];
   message = '';
   selectedFile: File | null = null;
+  editingProductId: number | null = null;
+  editingProductCurrentImageUrl: string | null = null;
 
   newProduct = {
     name: '',
@@ -22,6 +25,21 @@ export class Seller {
     price: 0,
     quantity: 0
   };
+
+  ngOnInit(): void {
+    this.loadProducts();
+  }
+
+  loadProducts(): void {
+    this.productService.getProducts().subscribe({
+      next: (products) => (this.products = products),
+      error: () => (this.message = 'Could not load products.')
+    });
+  }
+
+  getImageUrl(imagePath: string | null | undefined): string {
+    return this.productService.getImageUrl(imagePath);
+  }
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -55,7 +73,42 @@ export class Seller {
     this.message = '';
   }
 
-  addProduct(fileInput?: HTMLInputElement): void {
+  editProduct(product: Product, fileInput?: HTMLInputElement): void {
+    this.message = '';
+    this.editingProductId = product.id;
+    this.editingProductCurrentImageUrl = product.imageUrl ?? null;
+    this.newProduct = {
+      name: product.name,
+      description: product.description ?? '',
+      category: product.category,
+      price: product.price,
+      quantity: product.quantity
+    };
+    this.selectedFile = null;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  cancelEdit(fileInput?: HTMLInputElement): void {
+    this.editingProductId = null;
+    this.editingProductCurrentImageUrl = null;
+    this.newProduct = {
+      name: '',
+      description: '',
+      category: '',
+      price: 0,
+      quantity: 0
+    };
+    this.selectedFile = null;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+    this.message = '';
+  }
+
+  saveProduct(fileInput?: HTMLInputElement): void {
     this.message = '';
 
     if (
@@ -70,7 +123,7 @@ export class Seller {
       return;
     }
 
-    if (!this.selectedFile) {
+    if (!this.editingProductId && !this.selectedFile) {
       this.message = 'Please select a product image.';
       return;
     }
@@ -83,32 +136,48 @@ export class Seller {
     formData.append('category', this.newProduct.category);
     formData.append('price', this.newProduct.price.toString());
     formData.append('quantity', this.newProduct.quantity.toString());
-    formData.append('image', this.selectedFile);
+    if (this.selectedFile) {
+      formData.append('image', this.selectedFile);
+    }
 
-    this.productService.createProduct(formData).subscribe({
-      next: () => {
-        this.message = 'Product added successfully.';
-        this.newProduct = {
-          name: '',
-          description: '',
-          category: '',
-          price: 0,
-          quantity: 0
-        };
-        this.selectedFile = null;
-        if (fileInput) {
-          fileInput.value = '';
+    if (this.editingProductId) {
+      this.productService.updateProduct(this.editingProductId, formData).subscribe({
+        next: () => {
+          this.message = 'Product updated successfully.';
+          this.cancelEdit(fileInput);
+          this.loadProducts();
+        },
+        error: (err) => {
+          if (typeof err?.error === 'string') {
+            this.message = err.error;
+          } else if (err?.error?.title) {
+            this.message = err.error.title;
+          } else {
+            this.message = 'Could not update the product.';
+          }
         }
-      },
-      error: (err) => {
-        if (typeof err?.error === 'string') {
-          this.message = err.error;
-        } else if (err?.error?.title) {
-          this.message = err.error.title;
-        } else {
-          this.message = 'Could not add the product.';
+      });
+    } else {
+      this.productService.createProduct(formData).subscribe({
+        next: () => {
+          this.message = 'Product added successfully.';
+          this.cancelEdit(fileInput);
+          this.loadProducts();
+        },
+        error: (err) => {
+          if (typeof err?.error === 'string') {
+            this.message = err.error;
+          } else if (err?.error?.title) {
+            this.message = err.error.title;
+          } else {
+            this.message = 'Could not add the product.';
+          }
         }
-      }
-    });
+      });
+    }
+  }
+
+  addProduct(fileInput?: HTMLInputElement): void {
+    this.saveProduct(fileInput);
   }
 }
