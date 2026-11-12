@@ -15,7 +15,17 @@
 
   <button type="button" (click)="filterProducts()">Filter</button>
 
-  <p>{{ errorMessage }}</p>
+  @if (errorMessage) {
+    <p class="error-message">{{ errorMessage }}</p>
+  }
+
+  @if (orderMessage) {
+    <p class="order-success">{{ orderMessage }}</p>
+  }
+
+  @if (orderErrorMessage) {
+    <p class="order-error">{{ orderErrorMessage }}</p>
+  }
 
   <section>
     @for (product of products; track product.id) {
@@ -38,6 +48,33 @@
             <span class="out-of-stock">Out of stock</span>
           }
         </p>
+
+        @if (product.quantity > 0) {
+          <div class="order-form">
+            <label [for]="'order-qty-' + product.id">Quantity:</label>
+            <input
+              [id]="'order-qty-' + product.id"
+              type="number"
+              min="1"
+              [max]="product.quantity"
+              step="1"
+              [(ngModel)]="orderQuantities[product.id]"
+            >
+            <button
+              type="button"
+              (click)="placeOrder(product)"
+              [disabled]="isOrderingProductId === product.id"
+            >
+              {{ isOrderingProductId === product.id ? 'Ordering...' : 'Place order' }}
+            </button>
+          </div>
+        } @else {
+          <div class="order-form">
+            <button type="button" disabled>
+              Place order
+            </button>
+          </div>
+        }
       </article>
     } @empty {
       <p>No products found.</p>

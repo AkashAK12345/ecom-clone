@@ -29,6 +29,11 @@ export class ProductService {
     return this.http.put<Product>(`${this.apiUrl}/${id}`, product);
   }
 
+  placeOrder(productId: number, quantity: number): Observable<any> {
+    const ordersUrl = this.apiUrl.replace(/\/products\/?$/, '/orders');
+    return this.http.post(ordersUrl, { productId, quantity });
+  }
+
   getProductsByCategory(category: string): Observable<Product[]> {
     return this.http.get<Product[]>(
       `${this.apiUrl}/category/${encodeURIComponent(category)}`

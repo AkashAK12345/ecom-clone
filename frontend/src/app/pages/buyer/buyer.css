@@ -12,3 +12,32 @@
   font-weight: bold;
 }
 
+.order-form {
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.order-form input[type="number"] {
+  width: 65px;
+  padding: 0.25rem 0.4rem;
+}
+
+.order-success {
+  color: #1b5e20;
+  background-color: #e8f5e9;
+  border: 1px solid #a5d6a7;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  margin: 0.75rem 0;
+}
+
+.order-error {
+  color: #b71c1c;
+  background-color: #ffebee;
+  border: 1px solid #ffcdd2;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  margin: 0.75rem 0;
+}
