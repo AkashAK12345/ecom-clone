@@ -1,0 +1,130 @@
+<div class="seller-dashboard-page">
+  <header class="dashboard-header">
+    <div class="header-titles">
+      <h1>Seller Dashboard</h1>
+      <p class="dashboard-subtitle">
+        Welcome back! Manage your products, configure size-specific inventory, and review incoming customer orders.
+      </p>
+    </div>
+  </header>
+
+  <!-- Overview Stats Section -->
+  <section class="stats-overview" aria-label="Catalog Overview">
+    <div class="stat-card">
+      <div class="stat-icon-wrapper stat-icon-blue">
+        <svg class="stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <path d="M16 10a4 4 0 0 1-8 0"></path>
+        </svg>
+      </div>
+      <div class="stat-info">
+        <span class="stat-label">Products Listed</span>
+        <strong class="stat-value">{{ isLoadingStats ? '...' : productCount }}</strong>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrapper stat-icon-green">
+        <svg class="stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+        </svg>
+      </div>
+      <div class="stat-info">
+        <span class="stat-label">Total Stock in Units</span>
+        <strong class="stat-value">{{ isLoadingStats ? '...' : totalStock }}</strong>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrapper stat-icon-purple">
+        <svg class="stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+          <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+          <path d="M9 12h6M9 16h6"></path>
+        </svg>
+      </div>
+      <div class="stat-info">
+        <span class="stat-label">Orders Received</span>
+        <strong class="stat-value">{{ isLoadingStats ? '...' : orderCount }}</strong>
+      </div>
+    </div>
+  </section>
+
+  <!-- Three Navigation Options -->
+  <section class="dashboard-nav-section" aria-label="Seller Actions">
+    <div class="section-heading">
+      <h2>Quick Actions</h2>
+      <p class="section-description">Choose an action below to navigate to that section.</p>
+    </div>
+
+    <div class="nav-cards-grid">
+      <!-- 1. Add Product Option -->
+      <a routerLink="/seller/add-product" class="nav-card">
+        <div class="nav-card-icon-container icon-primary">
+          <svg class="nav-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <line x1="12" y1="9" x2="12" y2="15"></line>
+            <line x1="9" y1="12" x2="15" y2="12"></line>
+          </svg>
+        </div>
+        <div class="nav-card-content">
+          <h3 class="nav-card-title">Add Product</h3>
+          <p class="nav-card-desc">Create a new product listing with customized clothing sizes, stock quantities, and image upload.</p>
+        </div>
+        <span class="nav-card-action">
+          <span>Go to Add Product</span>
+          <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </span>
+      </a>
+
+      <!-- 2. My Products Option -->
+      <a routerLink="/seller/products" class="nav-card">
+        <div class="nav-card-icon-container icon-success">
+          <svg class="nav-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <path d="M16 10a4 4 0 0 1-8 0"></path>
+          </svg>
+        </div>
+        <div class="nav-card-content">
+          <h3 class="nav-card-title">My Products</h3>
+          <p class="nav-card-desc">Inspect your active listings, manage size-specific quantities, edit item details, and check customer reviews.</p>
+        </div>
+        <span class="nav-card-action">
+          <span>Go to My Products</span>
+          <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </span>
+      </a>
+
+      <!-- 3. Orders for My Products Option -->
+      <a routerLink="/seller/orders" class="nav-card">
+        <div class="nav-card-icon-container icon-purple">
+          <svg class="nav-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+            <path d="M9 12h6M9 16h6"></path>
+          </svg>
+        </div>
+        <div class="nav-card-content">
+          <h3 class="nav-card-title">Orders for My Products</h3>
+          <p class="nav-card-desc">Review customer orders, check ordered clothing sizes, track item quantities, and monitor sales totals.</p>
+        </div>
+        <span class="nav-card-action">
+          <span>Go to Orders</span>
+          <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </span>
+      </a>
+    </div>
+  </section>
+</div>

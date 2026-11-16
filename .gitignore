@@ -28,3 +28,6 @@ backend/wwwroot/uploads/products/*
 # OS files
 .DS_Store
 Thumbs.db
+
+# Backups
+backups/

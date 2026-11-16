@@ -13,7 +13,35 @@ export const routes: Routes = [
     path: 'seller',
     canActivate: [sellerGuard],
     loadComponent: () =>
-      import('./pages/seller/seller').then((page) => page.Seller)
+      import('./pages/seller/seller-layout').then((m) => m.SellerLayout),
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        canActivate: [sellerGuard],
+        loadComponent: () =>
+          import('./pages/seller/seller-dashboard').then((m) => m.SellerDashboard)
+      },
+      {
+        path: 'add-product',
+        canActivate: [sellerGuard],
+        loadComponent: () =>
+          import('./pages/seller/seller-add-product').then((m) => m.SellerAddProduct)
+      },
+      {
+        path: 'products',
+        canActivate: [sellerGuard],
+        loadComponent: () =>
+          import('./pages/seller/seller-products').then((m) => m.SellerProducts)
+      },
+      {
+        path: 'orders',
+        canActivate: [sellerGuard],
+        loadComponent: () =>
+          import('./pages/seller/seller-orders').then((m) => m.SellerOrders)
+      },
+      { path: '**', redirectTo: '' }
+    ]
   },
   {
     path: 'login',

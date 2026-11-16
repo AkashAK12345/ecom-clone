@@ -1,0 +1,140 @@
+<div class="seller-products-page">
+  <div class="back-nav-row">
+    <a routerLink="/seller" class="back-link">
+      <svg class="back-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      <span>Back to Dashboard</span>
+    </a>
+  </div>
+
+  <section class="seller-products-section">
+    <div class="section-title-row">
+      <div class="title-with-count">
+        <h1>My Products</h1>
+        <span class="count-badge">{{ products.length }} listed</span>
+      </div>
+
+      <a routerLink="/seller/add-product" class="add-product-cta-btn">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>Add Product</span>
+      </a>
+    </div>
+
+    @if (isLoading) {
+      <div class="loading-state">
+        <p>Loading your products...</p>
+      </div>
+    } @else if (message) {
+      <div class="feedback-error-banner">
+        <p>{{ message }}</p>
+      </div>
+    } @else {
+      <div class="seller-products-grid">
+        @for (product of products; track product.id) {
+          <article class="seller-product-card">
+            <div class="seller-card-image">
+              @if (product.imageUrl) {
+                <img
+                  [src]="getImageUrl(product.imageUrl)"
+                  [alt]="product.name"
+                  class="product-image"
+                >
+              } @else {
+                <div class="image-placeholder">No Image Available</div>
+              }
+              <span class="category-badge">{{ product.category }}</span>
+            </div>
+
+            <div class="seller-card-body">
+              <h2 class="product-title">{{ product.name }}</h2>
+              <p class="product-desc">{{ product.description }}</p>
+
+              <div class="price-stock-row">
+                <span class="seller-price">₹{{ product.price }}</span>
+                <div class="stock-pill" [class.stock-pill-in]="product.quantity > 0" [class.stock-pill-out]="product.quantity <= 0">
+                  @if (product.quantity > 0) {
+                    <span>Total stock: {{ product.quantity }}</span>
+                  } @else {
+                    <span class="out-of-stock">Out of stock</span>
+                  }
+                </div>
+              </div>
+
+              @if (product.sizes && product.sizes.length > 0) {
+                <div class="seller-sizes-inventory">
+                  <span class="sizes-title">Sizes breakdown:</span>
+                  <div class="seller-size-badges">
+                    @for (s of product.sizes; track s.size) {
+                      <span class="seller-size-badge" [class.size-badge-out]="s.quantity === 0">
+                        {{ s.size }}: <strong>{{ s.quantity }}</strong>
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
+
+              <div class="seller-card-actions">
+                <button type="button" class="action-btn edit-btn" (click)="editProduct(product)">
+                  ✎ Edit
+                </button>
+                <button
+                  type="button"
+                  class="action-btn reviews-btn"
+                  (click)="toggleReviews(product.id)"
+                >
+                  {{ expandedReviews[product.id] ? '▲ Hide Reviews' : '▼ Reviews' }}
+                  @if (productReviews[product.id]) {
+                    ({{ productReviews[product.id].length }})
+                  }
+                </button>
+              </div>
+
+              @if (expandedReviews[product.id]) {
+                <div class="seller-reviews-panel">
+                  <h3>Customer Reviews</h3>
+
+                  @if (loadingReviews[product.id]) {
+                    <p class="reviews-loading">Loading reviews...</p>
+                  } @else if (reviewError[product.id]) {
+                    <p class="review-error">{{ reviewError[product.id] }}</p>
+                  } @else {
+                    @for (review of productReviews[product.id]; track review.id) {
+                      <div class="seller-review-item">
+                        <div class="review-header">
+                          <span class="review-stars">{{ getStars(review.rating) }}</span>
+                          <span class="review-buyer">{{ review.buyerEmail }}</span>
+                          <small class="review-date">{{ review.createdAt | date:'shortDate' }}</small>
+                        </div>
+                        <p class="review-comment">{{ review.comment }}</p>
+                      </div>
+                    } @empty {
+                      <p class="no-reviews">No reviews for this product yet.</p>
+                    }
+                  }
+                </div>
+              }
+            </div>
+          </article>
+        } @empty {
+          <div class="empty-products-state">
+            <div class="empty-icon-wrapper">
+              <svg class="empty-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <path d="M16 10a4 4 0 0 1-8 0"></path>
+              </svg>
+            </div>
+            <h3>No products listed yet</h3>
+            <p>You haven't added any products to your catalog. Start selling today!</p>
+            <a routerLink="/seller/add-product" class="empty-cta-btn">Add Your First Product</a>
+          </div>
+        }
+      </div>
+    }
+  </section>
+</div>

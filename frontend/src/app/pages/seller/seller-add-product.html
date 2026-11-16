@@ -1,0 +1,222 @@
+<div class="seller-add-product-page">
+  <div class="back-nav-row">
+    <a routerLink="/seller" class="back-link">
+      <svg class="back-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      <span>Back to Dashboard</span>
+    </a>
+  </div>
+
+  <section class="seller-form-section">
+    <div class="seller-form-card">
+      <div class="form-header">
+        <div class="form-title-group">
+          <h1>{{ editingProductId ? 'Edit product' : 'Add a product' }}</h1>
+          <p class="form-subtitle">
+            {{ editingProductId ? 'Update product details and adjust inventory levels across sizes.' : 'Fill in the details below to publish a new product with size-specific inventory.' }}
+          </p>
+        </div>
+        @if (editingProductId) {
+          <span class="editing-indicator">Editing Product #{{ editingProductId }}</span>
+        }
+      </div>
+
+      <form #productForm="ngForm" (ngSubmit)="saveProduct(fileInput)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="name">Product name</label>
+            <input
+              id="name"
+              name="name"
+              [(ngModel)]="newProduct.name"
+              placeholder="e.g. Classic Denim Jacket"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="category">Category</label>
+            <select
+              id="category"
+              name="category"
+              [(ngModel)]="newProduct.category"
+              required
+            >
+              <option value="" disabled>Select a category</option>
+              <option value="Men">Men</option>
+              <option value="Women">Women</option>
+              <option value="Kids">Kids</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="price">Price (₹)</label>
+            <input
+              id="price"
+              name="price"
+              type="number"
+              min="0.01"
+              step="0.01"
+              [(ngModel)]="newProduct.price"
+              placeholder="e.g. 1299"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="image">
+              Product image
+              @if (editingProductId) {
+                <small class="label-hint">(optional - leave empty to keep current image)</small>
+              }
+            </label>
+            <input
+              #fileInput
+              id="image"
+              name="image"
+              type="file"
+              accept=".jpg,.jpeg,.png,.webp,.gif,image/*"
+              (change)="onFileSelected($event)"
+              class="file-input"
+            >
+          </div>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="description">Description</label>
+          <input
+            id="description"
+            name="description"
+            [(ngModel)]="newProduct.description"
+            placeholder="Short details about fabric, fit, or style"
+          >
+        </div>
+
+        @if (editingProductId && editingProductCurrentImageUrl) {
+          <div class="current-image-preview">
+            <span class="preview-label">Current product image:</span>
+            <img [src]="getImageUrl(editingProductCurrentImageUrl)" alt="Current product image">
+          </div>
+        }
+
+        <div class="sizes-config-section">
+          <label class="sizes-section-label">Sizes & Stock Inventory</label>
+          <p class="sizes-hint">Configure available clothing sizes and stock for each size. Total stock is calculated automatically.</p>
+
+          <div class="sizes-table-container">
+            <table class="sizes-config-table">
+              <thead>
+                <tr>
+                  <th>Size</th>
+                  <th>Stock quantity</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (opt of sizeOptions; track $index) {
+                  <tr>
+                    <td>
+                      <input
+                        type="text"
+                        [(ngModel)]="opt.size"
+                        [name]="'size_name_' + $index"
+                        placeholder="e.g. S, M, L"
+                        maxlength="20"
+                        required
+                        class="size-name-input"
+                      >
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        [(ngModel)]="opt.quantity"
+                        [name]="'size_qty_' + $index"
+                        min="0"
+                        max="100000"
+                        step="1"
+                        required
+                        class="size-qty-input"
+                      >
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        class="remove-size-btn"
+                        (click)="removeSizeOption($index)"
+                        [disabled]="sizeOptions.length <= 1"
+                        title="Remove size"
+                      >
+                        ✕ Remove
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="add-size-toolbar">
+            <span class="quick-add-label">Quick add size:</span>
+            <div class="quick-add-buttons">
+              @for (preset of presetSizes; track preset) {
+                <button
+                  type="button"
+                  class="quick-size-btn"
+                  (click)="addSizeOption(preset)"
+                  [disabled]="hasSize(preset)"
+                >
+                  + {{ preset }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="custom-size-row">
+            <input
+              type="text"
+              [(ngModel)]="customSizeName"
+              name="customSizeName"
+              placeholder="Custom size name (e.g. XXL)"
+              maxlength="20"
+            >
+            <button
+              type="button"
+              class="add-custom-size-btn"
+              (click)="addCustomSize()"
+              [disabled]="!customSizeName.trim()"
+            >
+              Add custom size
+            </button>
+          </div>
+
+          <div class="total-stock-display">
+            <strong>Total stock across all sizes:</strong> {{ getTotalStock() }}
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="submit-product-btn" [disabled]="productForm.invalid || isSaving">
+            {{ isSaving ? 'Saving...' : (editingProductId ? 'Save changes' : 'Add product') }}
+          </button>
+
+          @if (editingProductId) {
+            <button type="button" class="cancel-button" (click)="cancelEdit(fileInput)">
+              Cancel edit
+            </button>
+          }
+        </div>
+      </form>
+
+      @if (message) {
+        <div class="form-feedback-message" [class.feedback-success]="isSuccess" [class.feedback-error]="!isSuccess">
+          <p class="feedback-text">{{ message }}</p>
+          @if (isSuccess) {
+            <a routerLink="/seller/products" class="view-products-link">View in My Products →</a>
+          }
+        </div>
+      }
+    </div>
+  </section>
+</div>

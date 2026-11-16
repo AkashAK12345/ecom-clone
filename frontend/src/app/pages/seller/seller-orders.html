@@ -1,0 +1,70 @@
+<div class="seller-orders-page">
+  <div class="back-nav-row">
+    <a routerLink="/seller" class="back-link">
+      <svg class="back-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      <span>Back to Dashboard</span>
+    </a>
+  </div>
+
+  <section class="seller-orders-section">
+    <div class="section-title-row">
+      <div class="title-with-count">
+        <h1>Orders for my products</h1>
+        <span class="count-badge">{{ sellerOrders.length }} orders</span>
+      </div>
+    </div>
+
+    @if (loadingOrders) {
+      <div class="orders-loading-state">
+        <p>Loading orders for your products...</p>
+      </div>
+    } @else if (ordersErrorMessage) {
+      <div class="feedback-error-banner">
+        <p>{{ ordersErrorMessage }}</p>
+      </div>
+    } @else if (sellerOrders.length === 0) {
+      <div class="empty-orders-state">
+        <div class="empty-icon-wrapper">
+          <svg class="empty-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+            <path d="M9 12h6M9 16h6"></path>
+          </svg>
+        </div>
+        <h2>No orders for your products yet</h2>
+        <p>When buyers order your products, their purchases and chosen clothing sizes will appear here.</p>
+        <a routerLink="/seller/products" class="empty-cta-btn">View My Products</a>
+      </div>
+    } @else {
+      <div class="orders-table-wrapper">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Size</th>
+              <th>Qty</th>
+              <th>Unit price</th>
+              <th>Total price</th>
+              <th>Order date</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (order of sellerOrders; track order.id) {
+              <tr>
+                <td class="order-product-name">{{ order.productName }}</td>
+                <td><span class="order-size-badge">{{ order.size || 'One Size' }}</span></td>
+                <td class="order-qty">{{ order.quantity }}</td>
+                <td>₹{{ order.unitPrice }}</td>
+                <td class="order-total"><strong>₹{{ order.totalPrice }}</strong></td>
+                <td class="order-date">{{ order.orderDate | date:'mediumDate' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</div>
