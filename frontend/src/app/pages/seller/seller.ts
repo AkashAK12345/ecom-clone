@@ -29,6 +29,15 @@ export class Seller implements OnInit {
   loadingOrders = false;
   ordersErrorMessage = '';
 
+  presetSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'One Size'];
+  customSizeName = '';
+  sizeOptions: { size: string; quantity: number }[] = [
+    { size: 'S', quantity: 10 },
+    { size: 'M', quantity: 10 },
+    { size: 'L', quantity: 10 },
+    { size: 'XL', quantity: 10 }
+  ];
+
   newProduct = {
     name: '',
     description: '',
@@ -98,6 +107,58 @@ export class Seller implements OnInit {
     this.cdr.markForCheck();
   }
 
+  hasSize(sizeName: string): boolean {
+    const key = sizeName.trim().toUpperCase();
+    return this.sizeOptions.some(s => s.size.trim().toUpperCase() === key);
+  }
+
+  addSizeOption(preset?: string): void {
+    const sizeName = (preset || '').trim();
+    if (sizeName && this.hasSize(sizeName)) {
+      this.message = `Size '${sizeName}' is already in the list.`;
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.sizeOptions.push({
+      size: sizeName || '',
+      quantity: 10
+    });
+    this.message = '';
+    this.cdr.markForCheck();
+  }
+
+  removeSizeOption(index: number): void {
+    if (this.sizeOptions.length > 1) {
+      this.sizeOptions.splice(index, 1);
+      this.cdr.markForCheck();
+    }
+  }
+
+  addCustomSize(): void {
+    const trimmed = this.customSizeName.trim();
+    if (!trimmed) {
+      return;
+    }
+    if (this.hasSize(trimmed)) {
+      this.message = `Size '${trimmed}' is already in the list.`;
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.sizeOptions.push({
+      size: trimmed,
+      quantity: 10
+    });
+    this.customSizeName = '';
+    this.message = '';
+    this.cdr.markForCheck();
+  }
+
+  getTotalStock(): number {
+    return this.sizeOptions.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+  }
+
   editProduct(product: Product, fileInput?: HTMLInputElement): void {
     this.message = '';
     this.editingProductId = product.id;
@@ -109,6 +170,13 @@ export class Seller implements OnInit {
       price: product.price,
       quantity: product.quantity
     };
+
+    if (product.sizes && product.sizes.length > 0) {
+      this.sizeOptions = product.sizes.map(s => ({ size: s.size, quantity: s.quantity }));
+    } else {
+      this.sizeOptions = [{ size: 'One Size', quantity: product.quantity }];
+    }
+
     this.selectedFile = null;
     if (fileInput) {
       fileInput.value = '';
@@ -127,6 +195,13 @@ export class Seller implements OnInit {
       price: 0,
       quantity: 0
     };
+    this.sizeOptions = [
+      { size: 'S', quantity: 10 },
+      { size: 'M', quantity: 10 },
+      { size: 'L', quantity: 10 },
+      { size: 'XL', quantity: 10 }
+    ];
+    this.customSizeName = '';
     this.selectedFile = null;
     if (fileInput) {
       fileInput.value = '';
@@ -138,20 +213,56 @@ export class Seller implements OnInit {
   saveProduct(fileInput?: HTMLInputElement): void {
     this.message = '';
 
-    if (
-      this.newProduct.quantity === null ||
-      this.newProduct.quantity === undefined ||
-      isNaN(this.newProduct.quantity) ||
-      !Number.isInteger(Number(this.newProduct.quantity)) ||
-      this.newProduct.quantity < 0 ||
-      this.newProduct.quantity > 100000
-    ) {
-      this.message = 'Stock quantity must be a whole number between 0 and 100,000.';
+    if (!this.sizeOptions || this.sizeOptions.length === 0) {
+      this.message = 'Please specify at least one size option with its stock quantity.';
+      this.cdr.markForCheck();
       return;
     }
 
+    for (const opt of this.sizeOptions) {
+      const trimmedSize = opt.size ? opt.size.trim() : '';
+      if (!trimmedSize) {
+        this.message = 'Every size option must have a size name.';
+        this.cdr.markForCheck();
+        return;
+      }
+      if (trimmedSize.length > 20) {
+        this.message = `Size name '${trimmedSize}' cannot exceed 20 characters.`;
+        this.cdr.markForCheck();
+        return;
+      }
+      const qty = Number(opt.quantity);
+      if (
+        opt.quantity === null ||
+        opt.quantity === undefined ||
+        isNaN(qty) ||
+        !Number.isInteger(qty) ||
+        qty < 0 ||
+        qty > 100000
+      ) {
+        this.message = `Stock quantity for size '${trimmedSize}' must be a whole number between 0 and 100,000.`;
+        this.cdr.markForCheck();
+        return;
+      }
+    }
+
+    const seen = new Set<string>();
+    for (const opt of this.sizeOptions) {
+      const key = opt.size.trim().toUpperCase();
+      if (seen.has(key)) {
+        this.message = `Duplicate size '${opt.size.trim()}' is not allowed. Each size must be unique.`;
+        this.cdr.markForCheck();
+        return;
+      }
+      seen.add(key);
+    }
+
+    const totalStock = this.getTotalStock();
+    this.newProduct.quantity = totalStock;
+
     if (!this.editingProductId && !this.selectedFile) {
       this.message = 'Please select a product image.';
+      this.cdr.markForCheck();
       return;
     }
 
@@ -162,7 +273,14 @@ export class Seller implements OnInit {
     }
     formData.append('category', this.newProduct.category);
     formData.append('price', this.newProduct.price.toString());
-    formData.append('quantity', this.newProduct.quantity.toString());
+    formData.append('quantity', totalStock.toString());
+
+    const cleanSizes = this.sizeOptions.map(s => ({
+      size: s.size.trim(),
+      quantity: Number(s.quantity)
+    }));
+    formData.append('sizesJson', JSON.stringify(cleanSizes));
+
     if (this.selectedFile) {
       formData.append('image', this.selectedFile);
     }

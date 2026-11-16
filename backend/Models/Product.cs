@@ -29,4 +29,6 @@ public class Product
     public int? SellerId { get; set; }
 
     public User? Seller { get; set; }
+
+    public List<ProductSize> Sizes { get; set; } = new();
 }

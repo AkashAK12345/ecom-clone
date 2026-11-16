@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using ECommerce.Api.Models;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
+using System.Text.Json;
 
 namespace ECommerce.Api.Controllers;
 
@@ -34,6 +35,55 @@ public class ProductsController : ControllerBase
         }
 
         return null;
+    }
+
+    private static List<ProductSizeDto> ParseSizes(string? sizesJson, int fallbackQuantity)
+    {
+        var result = new List<ProductSizeDto>();
+        if (!string.IsNullOrWhiteSpace(sizesJson))
+        {
+            try
+            {
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var parsed = JsonSerializer.Deserialize<List<ProductSizeDto>>(sizesJson, options);
+                if (parsed != null)
+                {
+                    result = parsed;
+                }
+            }
+            catch
+            {
+                // Fallback to empty
+            }
+        }
+
+        var cleaned = new List<ProductSizeDto>();
+        var seenSizes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in result)
+        {
+            var sizeName = item.Size?.Trim();
+            if (string.IsNullOrWhiteSpace(sizeName)) continue;
+            if (seenSizes.Contains(sizeName)) continue;
+
+            seenSizes.Add(sizeName);
+            cleaned.Add(new ProductSizeDto
+            {
+                Size = sizeName,
+                Quantity = Math.Clamp(item.Quantity, 0, 100000)
+            });
+        }
+
+        if (cleaned.Count == 0)
+        {
+            cleaned.Add(new ProductSizeDto
+            {
+                Size = "One Size",
+                Quantity = Math.Clamp(fallbackQuantity, 0, 100000)
+            });
+        }
+
+        return cleaned;
     }
 
     [HttpPost]
@@ -96,15 +146,23 @@ public class ProductsController : ControllerBase
 
         var relativeUrl = $"/uploads/products/{uniqueFileName}";
 
+        var parsedSizes = ParseSizes(dto.SizesJson, dto.Quantity);
+        var totalQuantity = parsedSizes.Sum(s => s.Quantity);
+
         var product = new Product
         {
             Name = dto.Name,
             Description = dto.Description,
             Category = dto.Category,
             Price = dto.Price,
-            Quantity = dto.Quantity,
+            Quantity = totalQuantity,
             ImageUrl = relativeUrl,
-            SellerId = sellerId.Value
+            SellerId = sellerId.Value,
+            Sizes = parsedSizes.Select(s => new ProductSize
+            {
+                Size = s.Size,
+                Quantity = s.Quantity
+            }).ToList()
         };
 
         _db.Products.Add(product);
@@ -120,7 +178,9 @@ public class ProductsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetProducts()
     {
-        var products = await _db.Products.ToListAsync();
+        var products = await _db.Products
+            .Include(p => p.Sizes.OrderBy(s => s.Id))
+            .ToListAsync();
         return Ok(products);
     }
 
@@ -135,6 +195,7 @@ public class ProductsController : ControllerBase
         }
 
         var products = await _db.Products
+            .Include(p => p.Sizes.OrderBy(s => s.Id))
             .Where(p => p.SellerId == sellerId.Value)
             .ToListAsync();
 
@@ -152,7 +213,9 @@ public class ProductsController : ControllerBase
             return Unauthorized("Invalid seller token.");
         }
 
-        var product = await _db.Products.FindAsync(id);
+        var product = await _db.Products
+            .Include(p => p.Sizes)
+            .FirstOrDefaultAsync(p => p.Id == id);
         if (product == null)
         {
             return NotFound($"Product with ID {id} was not found.");
@@ -215,7 +278,39 @@ public class ProductsController : ControllerBase
         product.Description = dto.Description;
         product.Category = dto.Category;
         product.Price = dto.Price;
-        product.Quantity = dto.Quantity;
+
+        if (!string.IsNullOrWhiteSpace(dto.SizesJson))
+        {
+            var parsedSizes = ParseSizes(dto.SizesJson, dto.Quantity);
+            var updatedSizeNames = new HashSet<string>(parsedSizes.Select(s => s.Size), StringComparer.OrdinalIgnoreCase);
+
+            // Remove sizes no longer in the list
+            product.Sizes.RemoveAll(s => !updatedSizeNames.Contains(s.Size));
+
+            foreach (var sizeDto in parsedSizes)
+            {
+                var existing = product.Sizes.FirstOrDefault(s => string.Equals(s.Size, sizeDto.Size, StringComparison.OrdinalIgnoreCase));
+                if (existing != null)
+                {
+                    existing.Quantity = sizeDto.Quantity;
+                }
+                else
+                {
+                    product.Sizes.Add(new ProductSize
+                    {
+                        ProductId = product.Id,
+                        Size = sizeDto.Size,
+                        Quantity = sizeDto.Quantity
+                    });
+                }
+            }
+
+            product.Quantity = product.Sizes.Sum(s => s.Quantity);
+        }
+        else
+        {
+            product.Quantity = dto.Quantity;
+        }
 
         await _db.SaveChangesAsync();
 
@@ -225,6 +320,7 @@ public class ProductsController : ControllerBase
 public async Task<IActionResult> GetByCategory(string category)
 {
     var products = await _db.Products
+        .Include(p => p.Sizes.OrderBy(s => s.Id))
         .Where(product => product.Category == category)
         .ToListAsync();
 

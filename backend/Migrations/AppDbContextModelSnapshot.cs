@@ -42,6 +42,10 @@ namespace backend.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Size")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<decimal>("TotalPrice")
                         .HasColumnType("numeric");
 
@@ -97,6 +101,33 @@ namespace backend.Migrations
                     b.HasIndex("SellerId");
 
                     b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("ECommerce.Api.Models.ProductSize", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Size")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId", "Size")
+                        .IsUnique();
+
+                    b.ToTable("ProductSizes");
                 });
 
             modelBuilder.Entity("ECommerce.Api.Models.Review", b =>
@@ -195,6 +226,17 @@ namespace backend.Migrations
                     b.Navigation("Seller");
                 });
 
+            modelBuilder.Entity("ECommerce.Api.Models.ProductSize", b =>
+                {
+                    b.HasOne("ECommerce.Api.Models.Product", "Product")
+                        .WithMany("Sizes")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("ECommerce.Api.Models.Review", b =>
                 {
                     b.HasOne("ECommerce.Api.Models.User", "Buyer")
@@ -212,6 +254,11 @@ namespace backend.Migrations
                     b.Navigation("Buyer");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("ECommerce.Api.Models.Product", b =>
+                {
+                    b.Navigation("Sizes");
                 });
 #pragma warning restore 612, 618
         }

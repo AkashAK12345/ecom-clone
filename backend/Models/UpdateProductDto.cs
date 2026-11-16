@@ -22,6 +22,8 @@ public class UpdateProductDto
     [Range(0, 100000, ErrorMessage = "Stock quantity must be between 0 and 100,000.")]
     public int Quantity { get; set; }
 
+    public string? SizesJson { get; set; }
+
     public IFormFile? Image { get; set; }
 }
 

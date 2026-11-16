@@ -26,5 +26,8 @@ public class Order
     public int? BuyerId { get; set; }
 
     public User? Buyer { get; set; }
+
+    [StringLength(20)]
+    public string? Size { get; set; }
 }
 

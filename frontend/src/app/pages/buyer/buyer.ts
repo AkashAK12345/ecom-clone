@@ -22,6 +22,7 @@ export class Buyer implements OnInit {
   orderMessage = '';
   orderErrorMessage = '';
   orderQuantities: { [productId: number]: number } = {};
+  selectedSizes: { [productId: number]: string } = {};
   isOrderingProductId: number | null = null;
 
   myOrders: OrderHistoryItem[] = [];
@@ -86,6 +87,41 @@ export class Buyer implements OnInit {
     return this.productService.getImageUrl(imagePath);
   }
 
+  isProductInStock(product: Product): boolean {
+    if (product.sizes && product.sizes.length > 0) {
+      return product.sizes.some(s => s.quantity > 0);
+    }
+    return product.quantity > 0;
+  }
+
+  getSelectedSizeStock(product: Product): number {
+    const sizeName = this.selectedSizes[product.id];
+    if (!sizeName || !product.sizes) {
+      return 0;
+    }
+    const option = product.sizes.find(s => s.size === sizeName);
+    return option ? option.quantity : 0;
+  }
+
+  selectSize(product: Product, sizeName: string): void {
+    this.selectedSizes[product.id] = sizeName;
+    const stock = this.getSelectedSizeStock(product);
+    if (!this.orderQuantities[product.id] || this.orderQuantities[product.id] > stock) {
+      this.orderQuantities[product.id] = stock > 0 ? 1 : 0;
+    }
+    this.orderErrorMessage = '';
+    this.cdr.markForCheck();
+  }
+
+  onSizeChange(product: Product): void {
+    const stock = this.getSelectedSizeStock(product);
+    if (!this.orderQuantities[product.id] || this.orderQuantities[product.id] > stock) {
+      this.orderQuantities[product.id] = stock > 0 ? 1 : 0;
+    }
+    this.orderErrorMessage = '';
+    this.cdr.markForCheck();
+  }
+
   placeOrder(product: Product): void {
     this.orderMessage = '';
     this.orderErrorMessage = '';
@@ -98,6 +134,20 @@ export class Buyer implements OnInit {
 
     if (this.authService.getRole() !== 'Buyer') {
       this.orderErrorMessage = 'Only buyers are permitted to place orders.';
+      this.cdr.markForCheck();
+      return;
+    }
+
+    const selectedSize = this.selectedSizes[product.id];
+    if (!selectedSize) {
+      this.orderErrorMessage = `Please select an available size for ${product.name} before placing an order.`;
+      this.cdr.markForCheck();
+      return;
+    }
+
+    const sizeOption = product.sizes?.find(s => s.size === selectedSize);
+    if (!sizeOption || sizeOption.quantity <= 0) {
+      this.orderErrorMessage = `Size '${selectedSize}' for ${product.name} is out of stock.`;
       this.cdr.markForCheck();
       return;
     }
@@ -115,14 +165,8 @@ export class Buyer implements OnInit {
       return;
     }
 
-    if (product.quantity <= 0) {
-      this.orderErrorMessage = `Product '${product.name}' is out of stock.`;
-      this.cdr.markForCheck();
-      return;
-    }
-
-    if (quantity > product.quantity) {
-      this.orderErrorMessage = `Requested quantity (${quantity}) exceeds available stock (${product.quantity}) for ${product.name}.`;
+    if (quantity > sizeOption.quantity) {
+      this.orderErrorMessage = `Requested quantity (${quantity}) exceeds available stock (${sizeOption.quantity}) for size '${selectedSize}'.`;
       this.cdr.markForCheck();
       return;
     }
@@ -130,10 +174,10 @@ export class Buyer implements OnInit {
     this.isOrderingProductId = product.id;
     this.cdr.markForCheck();
 
-    this.productService.placeOrder(product.id, Number(quantity)).subscribe({
+    this.productService.placeOrder(product.id, Number(quantity), selectedSize).subscribe({
       next: (res: any) => {
         this.isOrderingProductId = null;
-        this.orderMessage = res?.message || `Order placed successfully for ${quantity} x ${product.name}!`;
+        this.orderMessage = res?.message || `Order placed successfully for ${quantity} x ${product.name} (Size: ${selectedSize})!`;
         this.orderErrorMessage = '';
         this.orderQuantities[product.id] = 1;
 

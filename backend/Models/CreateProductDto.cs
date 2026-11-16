@@ -22,6 +22,8 @@ public class CreateProductDto
     [Range(0, 100000, ErrorMessage = "Stock quantity must be between 0 and 100,000.")]
     public int Quantity { get; set; }
 
+    public string? SizesJson { get; set; }
+
     [Required(ErrorMessage = "Product image is required.")]
     public IFormFile? Image { get; set; }
 }

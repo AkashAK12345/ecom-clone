@@ -48,33 +48,51 @@ public class OrdersController : ControllerBase
             return BadRequest("Order quantity must be at least 1.");
         }
 
+        if (string.IsNullOrWhiteSpace(dto.Size))
+        {
+            return BadRequest("A size must be selected to place an order.");
+        }
+
         await using var transaction = await _db.Database.BeginTransactionAsync();
         try
         {
-            var product = await _db.Products.FindAsync(dto.ProductId);
+            var product = await _db.Products
+                .Include(p => p.Sizes)
+                .FirstOrDefaultAsync(p => p.Id == dto.ProductId);
+
             if (product == null)
             {
                 return NotFound($"Product with ID {dto.ProductId} was not found.");
             }
 
-            if (product.Quantity <= 0)
+            var sizeOption = product.Sizes
+                .FirstOrDefault(s => string.Equals(s.Size, dto.Size.Trim(), StringComparison.OrdinalIgnoreCase));
+
+            if (sizeOption == null)
             {
-                return BadRequest($"Product '{product.Name}' is out of stock.");
+                return BadRequest($"Size '{dto.Size}' is not available for product '{product.Name}'.");
             }
 
-            if (dto.Quantity > product.Quantity)
+            if (sizeOption.Quantity <= 0)
             {
-                return BadRequest($"Requested quantity ({dto.Quantity}) exceeds available stock ({product.Quantity}).");
+                return BadRequest($"Product '{product.Name}' in size '{sizeOption.Size}' is out of stock.");
             }
 
-            // Deduct stock
-            product.Quantity -= dto.Quantity;
+            if (dto.Quantity > sizeOption.Quantity)
+            {
+                return BadRequest($"Requested quantity ({dto.Quantity}) exceeds available stock ({sizeOption.Quantity}) for size '{sizeOption.Size}'.");
+            }
+
+            // Deduct size stock and sync total product stock
+            sizeOption.Quantity -= dto.Quantity;
+            product.Quantity = product.Sizes.Sum(s => s.Quantity);
 
             // Save order using price directly from database
             var order = new Order
             {
                 ProductId = product.Id,
                 BuyerId = buyerId.Value,
+                Size = sizeOption.Size,
                 Quantity = dto.Quantity,
                 UnitPrice = product.Price,
                 TotalPrice = product.Price * dto.Quantity,
@@ -91,11 +109,13 @@ public class OrdersController : ControllerBase
                 orderId = order.Id,
                 productId = order.ProductId,
                 productName = product.Name,
+                size = order.Size,
                 quantity = order.Quantity,
                 unitPrice = order.UnitPrice,
                 totalPrice = order.TotalPrice,
-                remainingStock = product.Quantity,
-                message = $"Order placed successfully for {order.Quantity} x {product.Name} (Total: ₹{order.TotalPrice})."
+                remainingStock = sizeOption.Quantity,
+                remainingTotalStock = product.Quantity,
+                message = $"Order placed successfully for {order.Quantity} x {product.Name} (Size: {order.Size}, Total: ₹{order.TotalPrice})."
             });
         }
         catch (Exception)
@@ -124,6 +144,7 @@ public class OrdersController : ControllerBase
                 Id = o.Id,
                 ProductId = o.ProductId,
                 ProductName = o.Product != null ? o.Product.Name : "Product",
+                Size = o.Size ?? "One Size",
                 Quantity = o.Quantity,
                 UnitPrice = o.UnitPrice,
                 TotalPrice = o.TotalPrice,
@@ -153,6 +174,7 @@ public class OrdersController : ControllerBase
                 Id = o.Id,
                 ProductId = o.ProductId,
                 ProductName = o.Product != null ? o.Product.Name : "Product",
+                Size = o.Size ?? "One Size",
                 Quantity = o.Quantity,
                 UnitPrice = o.UnitPrice,
                 TotalPrice = o.TotalPrice,

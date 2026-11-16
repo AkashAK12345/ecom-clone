@@ -38,17 +38,100 @@
       required
     >
 
-    <label for="quantity">Stock quantity</label>
-    <input
-      id="quantity"
-      name="quantity"
-      type="number"
-      min="0"
-      max="100000"
-      step="1"
-      [(ngModel)]="newProduct.quantity"
-      required
-    >
+    <div class="sizes-config-section">
+      <label class="sizes-section-label">Sizes & Stock Inventory</label>
+      <p class="sizes-hint">Configure available clothing sizes and stock for each size. Total stock is calculated automatically.</p>
+
+      <div class="sizes-table-container">
+        <table class="sizes-config-table">
+          <thead>
+            <tr>
+              <th>Size</th>
+              <th>Stock quantity</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (opt of sizeOptions; track $index) {
+              <tr>
+                <td>
+                  <input
+                    type="text"
+                    [(ngModel)]="opt.size"
+                    [name]="'size_name_' + $index"
+                    placeholder="e.g. S, M, L"
+                    maxlength="20"
+                    required
+                    class="size-name-input"
+                  >
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    [(ngModel)]="opt.quantity"
+                    [name]="'size_qty_' + $index"
+                    min="0"
+                    max="100000"
+                    step="1"
+                    required
+                    class="size-qty-input"
+                  >
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    class="remove-size-btn"
+                    (click)="removeSizeOption($index)"
+                    [disabled]="sizeOptions.length <= 1"
+                    title="Remove size"
+                  >
+                    ✕
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="add-size-toolbar">
+        <span class="quick-add-label">Quick add size:</span>
+        <div class="quick-add-buttons">
+          @for (preset of presetSizes; track preset) {
+            <button
+              type="button"
+              class="quick-size-btn"
+              (click)="addSizeOption(preset)"
+              [disabled]="hasSize(preset)"
+            >
+              + {{ preset }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="custom-size-row">
+        <input
+          type="text"
+          [(ngModel)]="customSizeName"
+          name="customSizeName"
+          placeholder="Custom size name (e.g. XXL)"
+          maxlength="20"
+        >
+        <button
+          type="button"
+          class="add-custom-size-btn"
+          (click)="addCustomSize()"
+          [disabled]="!customSizeName.trim()"
+        >
+          Add custom size
+        </button>
+      </div>
+
+      <div class="total-stock-display">
+        <strong>Total stock across all sizes:</strong> {{ getTotalStock() }}
+      </div>
+    </div>
 
     <label for="image">
       Product image
@@ -105,12 +188,26 @@
         <p>Category: {{ product.category }}</p>
         <strong>₹{{ product.price }}</strong>
         <p>
+          <strong>Total stock:</strong>
           @if (product.quantity > 0) {
-            Stock: {{ product.quantity }}
+            {{ product.quantity }}
           } @else {
             <span class="out-of-stock">Out of stock</span>
           }
         </p>
+
+        @if (product.sizes && product.sizes.length > 0) {
+          <div class="seller-sizes-inventory">
+            <span class="sizes-title">Sizes:</span>
+            <div class="seller-size-badges">
+              @for (s of product.sizes; track s.size) {
+                <span class="seller-size-badge" [class.size-badge-out]="s.quantity === 0">
+                  {{ s.size }}: <strong>{{ s.quantity }}</strong>
+                </span>
+              }
+            </div>
+          </div>
+        }
 
         <div class="seller-card-actions">
           <button type="button" (click)="editProduct(product, fileInput)">
@@ -173,6 +270,7 @@
           <thead>
             <tr>
               <th>Product</th>
+              <th>Size</th>
               <th>Qty</th>
               <th>Unit price</th>
               <th>Total price</th>
@@ -183,6 +281,7 @@
             @for (order of sellerOrders; track order.id) {
               <tr>
                 <td>{{ order.productName }}</td>
+                <td><span class="order-size-badge">{{ order.size || 'One Size' }}</span></td>
                 <td>{{ order.quantity }}</td>
                 <td>₹{{ order.unitPrice }}</td>
                 <td><strong>₹{{ order.totalPrice }}</strong></td>

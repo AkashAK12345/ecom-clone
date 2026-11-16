@@ -11,6 +11,7 @@ public class AppDbContext : DbContext
     }
 
     public DbSet<Product> Products { get; set; } = null!;
+    public DbSet<ProductSize> ProductSizes { get; set; } = null!;
     public DbSet<Order> Orders { get; set; } = null!;
     public DbSet<User> Users { get; set; } = null!;
     public DbSet<Review> Reviews { get; set; } = null!;
@@ -28,6 +29,16 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(p => p.SellerId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<ProductSize>()
+            .HasOne(ps => ps.Product)
+            .WithMany(p => p.Sizes)
+            .HasForeignKey(ps => ps.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ProductSize>()
+            .HasIndex(ps => new { ps.ProductId, ps.Size })
+            .IsUnique();
 
         modelBuilder.Entity<Review>()
             .HasIndex(r => new { r.ProductId, r.BuyerId })

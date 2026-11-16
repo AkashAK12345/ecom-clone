@@ -2,6 +2,13 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+export interface ProductSize {
+  id?: number;
+  productId?: number;
+  size: string;
+  quantity: number;
+}
+
 export interface Product {
   id: number;
   name: string;
@@ -11,6 +18,7 @@ export interface Product {
   quantity: number;
   imageUrl?: string | null;
   sellerId?: number | null;
+  sizes?: ProductSize[];
 }
 
 export interface Review {
@@ -34,6 +42,7 @@ export interface OrderHistoryItem {
   id: number;
   productId: number;
   productName: string;
+  size?: string;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
@@ -61,9 +70,9 @@ export class ProductService {
     return this.http.put<Product>(`${this.apiUrl}/${id}`, product);
   }
 
-  placeOrder(productId: number, quantity: number): Observable<any> {
+  placeOrder(productId: number, quantity: number, size: string): Observable<any> {
     const ordersUrl = this.apiUrl.replace(/\/products\/?$/, '/orders');
-    return this.http.post(ordersUrl, { productId, quantity });
+    return this.http.post(ordersUrl, { productId, quantity, size });
   }
 
   getBuyerOrders(): Observable<OrderHistoryItem[]> {

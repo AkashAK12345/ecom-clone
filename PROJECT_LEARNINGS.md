@@ -166,4 +166,14 @@ This document records technical issues, environment hurdles, root causes, and ve
      - `GET /api/orders/seller` (`[Authorize(Roles = "Seller")]`): Joins on `Product` and filters by `o.Product.SellerId == currentSellerId`, preventing cross-seller order visibility.
   5. **Zoneless Angular Re-rendering**: Injected `ChangeDetectorRef` and invoked `markForCheck()` inside `loadMyOrders()` and `loadSellerOrders()` async subscriptions, ensuring newly placed orders and historical tables update immediately.
 
+### 2.10 Size-Specific Inventory Architecture: Variant Data Modeling, Safe Backfill Migration, and Stock Synchronization
+* **Symptom / Requirements**: Products previously tracked only a single flat stock quantity. Introducing clothing sizes required managing independent inventory counts per size (e.g., S, M, L, XL, XXL, One Size), letting sellers add/edit size options, requiring buyers to select an available size before ordering, atomically reducing only that size's stock, and safely migrating legacy products and orders that had no size data without deleting or resetting the database.
+* **Fix**:
+  1. **Relational Variant Modeling (`ProductSize`)**: Created dedicated `ProductSize` entity (`Id`, `ProductId`, `Size`, `Quantity`) with composite unique index on `[ProductId, Size]` and cascade delete on `Product`. Added `[JsonIgnore]` on `ProductSize.Product` to prevent System.Text.Json circular reference cycles during API serialization.
+  2. **Safe Migration & Backfill Strategy**: In migration `AddProductSizesAndOrderSize`, added `Size` column to `Orders` (nullable) and created `ProductSizes`. In the migration's `Up()` method, executed SQL backfilling existing product records with a default `'One Size'` entry mapped to their existing `Quantity`, and set existing orders' `Size` to `'One Size'`. Existing products and orders are preserved without data loss.
+  3. **Atomic Stock Decrement & Aggregate Synchronization**: In `POST /api/orders`, validated size presence, existence on the product, and stock sufficiency inside a database transaction. Decremented the specific size's stock (`sizeOption.Quantity -= dto.Quantity`) and recalculated the aggregate product stock (`product.Quantity = product.Sizes.Sum(s => s.Quantity)`), keeping public catalog filters and out-of-stock badges consistent.
+  4. **Multi-Size Seller Management & FormData Serialization**: Allowed sellers to configure sizes with quick presets and custom sizes. Serialized size structures via `sizesJson` alongside image uploads in `multipart/form-data`, deserialized and validated on the backend.
+  5. **Interactive Buyer Selection & Stock Bounds**: Added interactive size chips and size dropdown selection on product cards, dynamically setting the maximum orderable quantity to the selected size's remaining stock and disabling checkout until a valid size is selected.
+
+
 

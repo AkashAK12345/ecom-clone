@@ -42,36 +42,87 @@
         <p>Category: {{ product.category }}</p>
         <strong>₹{{ product.price }}</strong>
         <p>
-          @if (product.quantity > 0) {
-            Stock: {{ product.quantity }}
+          <strong>Total stock:</strong>
+          @if (isProductInStock(product)) {
+            {{ product.quantity }}
           } @else {
             <span class="out-of-stock">Out of stock</span>
           }
         </p>
 
-        @if (product.quantity > 0) {
+        @if (product.sizes && product.sizes.length > 0) {
+          <div class="buyer-sizes-section">
+            <span class="buyer-sizes-title">Available sizes:</span>
+            <div class="buyer-size-chips">
+              @for (s of product.sizes; track s.size) {
+                <button
+                  type="button"
+                  class="buyer-size-chip"
+                  [class.chip-selected]="selectedSizes[product.id] === s.size"
+                  [class.chip-out]="s.quantity <= 0"
+                  (click)="s.quantity > 0 && selectSize(product, s.size)"
+                  [disabled]="s.quantity <= 0"
+                  [title]="s.quantity > 0 ? (s.quantity + ' in stock') : 'Out of stock'"
+                >
+                  {{ s.size }} <small>({{ s.quantity > 0 ? s.quantity : '0' }})</small>
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+        @if (isProductInStock(product)) {
           <div class="order-form">
-            <label [for]="'order-qty-' + product.id">Quantity:</label>
-            <input
-              [id]="'order-qty-' + product.id"
-              type="number"
-              min="1"
-              [max]="product.quantity"
-              step="1"
-              [(ngModel)]="orderQuantities[product.id]"
-            >
+            <div class="size-select-group">
+              <label [for]="'order-size-' + product.id">Size:</label>
+              <select
+                [id]="'order-size-' + product.id"
+                [(ngModel)]="selectedSizes[product.id]"
+                (ngModelChange)="onSizeChange(product)"
+              >
+                <option value="">Select size</option>
+                @for (s of product.sizes; track s.size) {
+                  <option [value]="s.size" [disabled]="s.quantity <= 0">
+                    {{ s.size }} {{ s.quantity > 0 ? '(' + s.quantity + ' left)' : '(Out of stock)' }}
+                  </option>
+                }
+              </select>
+            </div>
+
+            <div class="qty-group">
+              <label [for]="'order-qty-' + product.id">Qty:</label>
+              <input
+                [id]="'order-qty-' + product.id"
+                type="number"
+                min="1"
+                [max]="getSelectedSizeStock(product) || 1"
+                step="1"
+                [(ngModel)]="orderQuantities[product.id]"
+                [disabled]="!selectedSizes[product.id] || getSelectedSizeStock(product) <= 0"
+              >
+            </div>
+
             <button
               type="button"
               (click)="placeOrder(product)"
-              [disabled]="isOrderingProductId === product.id"
+              [disabled]="isOrderingProductId === product.id || !selectedSizes[product.id] || getSelectedSizeStock(product) <= 0"
             >
               {{ isOrderingProductId === product.id ? 'Ordering...' : 'Place order' }}
             </button>
           </div>
+          @if (selectedSizes[product.id]) {
+            <small class="size-stock-feedback">
+              @if (getSelectedSizeStock(product) > 0) {
+                <span class="in-stock-hint">{{ getSelectedSizeStock(product) }} available in size {{ selectedSizes[product.id] }}</span>
+              } @else {
+                <span class="out-of-stock-hint">Size {{ selectedSizes[product.id] }} is out of stock</span>
+              }
+            </small>
+          }
         } @else {
           <div class="order-form">
             <button type="button" disabled>
-              Place order
+              Out of stock
             </button>
           </div>
         }
@@ -183,6 +234,7 @@
             <thead>
               <tr>
                 <th>Product</th>
+                <th>Size</th>
                 <th>Qty</th>
                 <th>Unit price</th>
                 <th>Total price</th>
@@ -193,6 +245,7 @@
               @for (order of myOrders; track order.id) {
                 <tr>
                   <td>{{ order.productName }}</td>
+                  <td><span class="order-size-badge">{{ order.size || 'One Size' }}</span></td>
                   <td>{{ order.quantity }}</td>
                   <td>₹{{ order.unitPrice }}</td>
                   <td><strong>₹{{ order.totalPrice }}</strong></td>
