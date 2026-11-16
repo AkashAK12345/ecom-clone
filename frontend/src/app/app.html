@@ -1,18 +1,27 @@
-<nav class="top-nav">
-  <div class="nav-links">
-    <a routerLink="/buyer">Buyer: browse products</a>
-    <a routerLink="/seller">Seller: add a product</a>
-  </div>
+<header class="app-header">
+  <nav class="top-nav">
+    <div class="nav-brand">
+      <a routerLink="/buyer" class="brand-link">
+        <span class="brand-icon">🛍️</span>
+        <span class="brand-text">StyleStore</span>
+      </a>
+    </div>
 
-  <div class="auth-links">
-    @if (authService.currentUser(); as user) {
-      <span class="user-badge">{{ user.email }} ({{ user.role }})</span>
-      <button type="button" class="logout-btn" (click)="logout()">Log out</button>
-    } @else {
-      <a routerLink="/login">Log in</a>
-      <a routerLink="/register">Register</a>
-    }
-  </div>
-</nav>
+    <div class="nav-links">
+      <a routerLink="/buyer">Buyer: browse products</a>
+      <a routerLink="/seller">Seller: add a product</a>
+    </div>
+
+    <div class="auth-links">
+      @if (authService.currentUser(); as user) {
+        <span class="user-badge">{{ user.email }} ({{ user.role }})</span>
+        <button type="button" class="logout-btn" (click)="logout()">Log out</button>
+      } @else {
+        <a routerLink="/login" class="auth-link login-link">Log in</a>
+        <a routerLink="/register" class="auth-link register-link">Register</a>
+      }
+    </div>
+  </nav>
+</header>
 
 <router-outlet />

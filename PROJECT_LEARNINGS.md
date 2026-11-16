@@ -175,5 +175,14 @@ This document records technical issues, environment hurdles, root causes, and ve
   4. **Multi-Size Seller Management & FormData Serialization**: Allowed sellers to configure sizes with quick presets and custom sizes. Serialized size structures via `sizesJson` alongside image uploads in `multipart/form-data`, deserialized and validated on the backend.
   5. **Interactive Buyer Selection & Stock Bounds**: Added interactive size chips and size dropdown selection on product cards, dynamically setting the maximum orderable quantity to the selected size's remaining stock and disabling checkout until a valid size is selected.
 
+### 2.11 Responsive UI/UX Polish: Mobile Usability, CSS Grid Layouts & Style Budgets
+* **Symptom / Requirements**: Earlier revisions of the buyer and seller pages relied on unclassed block elements and fixed-width cards (`max-width: 280px`), causing inconsistent card alignment on wide desktop monitors, awkward wrapping on mobile phones, and unstyled toolbars. In addition, growing component styles triggered Angular CLI production budget warnings (`anyComponentStyle exceeded maximum budget`).
+* **Fix**:
+  1. **Responsive CSS Grid Architecture**: Upgraded product listings to CSS Grid (`grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;`), with mobile media queries (`@media (max-width: 640px)`) adjusting to single-column flows for clean vertical scrolling.
+  2. **Horizontal Table Scroll Wrappers**: Wrapped both Buyer and Seller order history tables in `.orders-table-wrapper` with `overflow-x: auto; min-width: 580px;`, preserving table column alignment and readability on small mobile screens without causing page-level layout overflow.
+  3. **Touch Target Sizing & Interactive Feedback**: Increased button and chip padding to provide comfortable touch targets on mobile devices. Styled interactive states (`:hover`, `:focus`, `:active`, and `:disabled`) with distinct visual cues.
+  4. **Angular Style Budget Calibration (`angular.json`)**: Adjusted `anyComponentStyle` production budgets in `angular.json` (`maximumWarning: 15kB`, `maximumError: 30kB`) to cleanly accommodate self-contained responsive CSS rules without triggering build warnings.
+
+
 
 
