@@ -9,3 +9,4 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
   styleUrl: './seller-layout.css'
 })
 export class SellerLayout {}
+

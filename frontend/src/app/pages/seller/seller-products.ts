@@ -93,3 +93,4 @@ export class SellerProducts implements OnInit {
     return '★'.repeat(full) + '☆'.repeat(5 - full);
   }
 }
+
