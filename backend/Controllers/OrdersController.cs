@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 using ECommerce.Api.Data;
 using ECommerce.Api.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -17,10 +19,30 @@ public class OrdersController : ControllerBase
         _db = db;
     }
 
+    private int? GetCurrentUserId()
+    {
+        var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                   ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                   ?? User.FindFirst("sub")?.Value;
+
+        if (int.TryParse(idClaim, out var userId))
+        {
+            return userId;
+        }
+
+        return null;
+    }
+
     [HttpPost]
     [Authorize(Roles = "Buyer")]
     public async Task<IActionResult> CreateOrder([FromBody] CreateOrderDto dto)
     {
+        var buyerId = GetCurrentUserId();
+        if (buyerId == null)
+        {
+            return Unauthorized("Invalid buyer token.");
+        }
+
         if (dto.Quantity <= 0)
         {
             return BadRequest("Order quantity must be at least 1.");
@@ -52,6 +74,7 @@ public class OrdersController : ControllerBase
             var order = new Order
             {
                 ProductId = product.Id,
+                BuyerId = buyerId.Value,
                 Quantity = dto.Quantity,
                 UnitPrice = product.Price,
                 TotalPrice = product.Price * dto.Quantity,
@@ -80,6 +103,64 @@ public class OrdersController : ControllerBase
             await transaction.RollbackAsync();
             return StatusCode(500, "An error occurred while placing the order.");
         }
+    }
+
+    [HttpGet("buyer")]
+    [Authorize(Roles = "Buyer")]
+    public async Task<IActionResult> GetBuyerOrders()
+    {
+        var buyerId = GetCurrentUserId();
+        if (buyerId == null)
+        {
+            return Unauthorized("Invalid buyer token.");
+        }
+
+        var orders = await _db.Orders
+            .Include(o => o.Product)
+            .Where(o => o.BuyerId == buyerId.Value)
+            .OrderByDescending(o => o.OrderDate)
+            .Select(o => new OrderHistoryDto
+            {
+                Id = o.Id,
+                ProductId = o.ProductId,
+                ProductName = o.Product != null ? o.Product.Name : "Product",
+                Quantity = o.Quantity,
+                UnitPrice = o.UnitPrice,
+                TotalPrice = o.TotalPrice,
+                OrderDate = o.OrderDate
+            })
+            .ToListAsync();
+
+        return Ok(orders);
+    }
+
+    [HttpGet("seller")]
+    [Authorize(Roles = "Seller")]
+    public async Task<IActionResult> GetSellerOrders()
+    {
+        var sellerId = GetCurrentUserId();
+        if (sellerId == null)
+        {
+            return Unauthorized("Invalid seller token.");
+        }
+
+        var orders = await _db.Orders
+            .Include(o => o.Product)
+            .Where(o => o.Product != null && o.Product.SellerId == sellerId.Value)
+            .OrderByDescending(o => o.OrderDate)
+            .Select(o => new OrderHistoryDto
+            {
+                Id = o.Id,
+                ProductId = o.ProductId,
+                ProductName = o.Product != null ? o.Product.Name : "Product",
+                Quantity = o.Quantity,
+                UnitPrice = o.UnitPrice,
+                TotalPrice = o.TotalPrice,
+                OrderDate = o.OrderDate
+            })
+            .ToListAsync();
+
+        return Ok(orders);
     }
 }
 

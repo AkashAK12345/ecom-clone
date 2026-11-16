@@ -22,5 +22,9 @@ public class Order
     public decimal TotalPrice { get; set; }
 
     public DateTime OrderDate { get; set; } = DateTime.UtcNow;
+
+    public int? BuyerId { get; set; }
+
+    public User? Buyer { get; set; }
 }
 

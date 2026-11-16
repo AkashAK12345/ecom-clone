@@ -136,3 +136,60 @@
   font-size: 0.85rem;
 }
 
+.seller-orders-section {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid #e0e0e0;
+}
+
+.seller-orders-section h2 {
+  margin-bottom: 1rem;
+  color: #222;
+}
+
+.orders-loading,
+.no-orders {
+  color: #666;
+  font-style: italic;
+}
+
+.order-error {
+  color: #b71c1c;
+  background-color: #ffebee;
+  border: 1px solid #ffcdd2;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  margin: 0.75rem 0;
+}
+
+.orders-table-wrapper {
+  overflow-x: auto;
+}
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.orders-table th,
+.orders-table td {
+  padding: 0.65rem 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+}
+
+.orders-table th {
+  background: #f7f7f7;
+  font-weight: 600;
+  color: #333;
+}
+
+.orders-table tbody tr:hover {
+  background: #fcfcfc;
+}
+
+

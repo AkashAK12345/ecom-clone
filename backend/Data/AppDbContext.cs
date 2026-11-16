@@ -44,5 +44,11 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(r => r.BuyerId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Order>()
+            .HasOne(o => o.Buyer)
+            .WithMany()
+            .HasForeignKey(o => o.BuyerId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

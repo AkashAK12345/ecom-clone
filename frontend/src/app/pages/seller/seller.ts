@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
-import { Product, ProductService, Review } from '../../services/product';
+import { Product, ProductService, Review, OrderHistoryItem } from '../../services/product';
 
 @Component({
   selector: 'app-seller',
@@ -25,6 +25,10 @@ export class Seller implements OnInit {
   loadingReviews: { [productId: number]: boolean } = {};
   reviewError: { [productId: number]: string } = {};
 
+  sellerOrders: OrderHistoryItem[] = [];
+  loadingOrders = false;
+  ordersErrorMessage = '';
+
   newProduct = {
     name: '',
     description: '',
@@ -35,6 +39,7 @@ export class Seller implements OnInit {
 
   ngOnInit(): void {
     this.loadProducts();
+    this.loadSellerOrders();
   }
 
   loadProducts(): void {
@@ -245,5 +250,22 @@ export class Seller implements OnInit {
   getStars(rating: number): string {
     const full = Math.min(Math.max(rating, 1), 5);
     return '★'.repeat(full) + '☆'.repeat(5 - full);
+  }
+
+  loadSellerOrders(): void {
+    this.loadingOrders = true;
+    this.ordersErrorMessage = '';
+    this.productService.getSellerOrders().subscribe({
+      next: (orders) => {
+        this.loadingOrders = false;
+        this.sellerOrders = orders;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.loadingOrders = false;
+        this.ordersErrorMessage = 'Could not load orders for your products.';
+        this.cdr.markForCheck();
+      }
+    });
   }
 }

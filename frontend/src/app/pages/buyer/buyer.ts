@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
-import { Product, ProductService, Review } from '../../services/product';
+import { Product, ProductService, Review, OrderHistoryItem } from '../../services/product';
 import { AuthService } from '../../services/auth';
 
 @Component({
@@ -24,6 +24,10 @@ export class Buyer implements OnInit {
   orderQuantities: { [productId: number]: number } = {};
   isOrderingProductId: number | null = null;
 
+  myOrders: OrderHistoryItem[] = [];
+  loadingOrders = false;
+  ordersErrorMessage = '';
+
   expandedReviews: { [productId: number]: boolean } = {};
   productReviews: { [productId: number]: Review[] } = {};
   loadingReviews: { [productId: number]: boolean } = {};
@@ -34,6 +38,7 @@ export class Buyer implements OnInit {
 
   ngOnInit(): void {
     this.loadProducts();
+    this.loadMyOrders();
   }
 
   loadProducts(): void {
@@ -137,6 +142,7 @@ export class Buyer implements OnInit {
         } else {
           this.loadProducts();
         }
+        this.loadMyOrders();
         this.cdr.markForCheck();
       },
       error: (err) => {
@@ -260,5 +266,26 @@ export class Buyer implements OnInit {
   getStars(rating: number): string {
     const full = Math.min(Math.max(rating, 1), 5);
     return '★'.repeat(full) + '☆'.repeat(5 - full);
+  }
+
+  loadMyOrders(): void {
+    if (!this.authService.isLoggedIn() || this.authService.getRole() !== 'Buyer') {
+      this.myOrders = [];
+      return;
+    }
+    this.loadingOrders = true;
+    this.ordersErrorMessage = '';
+    this.productService.getBuyerOrders().subscribe({
+      next: (orders) => {
+        this.loadingOrders = false;
+        this.myOrders = orders;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.loadingOrders = false;
+        this.ordersErrorMessage = 'Could not load order history.';
+        this.cdr.markForCheck();
+      }
+    });
   }
 }

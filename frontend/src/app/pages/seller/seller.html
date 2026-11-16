@@ -157,4 +157,41 @@
       <p>No products listed yet.</p>
     }
   </section>
+
+  <section class="seller-orders-section">
+    <h2>Orders for my products</h2>
+
+    @if (loadingOrders) {
+      <p class="orders-loading">Loading orders for your products...</p>
+    } @else if (ordersErrorMessage) {
+      <p class="order-error">{{ ordersErrorMessage }}</p>
+    } @else if (sellerOrders.length === 0) {
+      <p class="no-orders">No orders for your products yet.</p>
+    } @else {
+      <div class="orders-table-wrapper">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Qty</th>
+              <th>Unit price</th>
+              <th>Total price</th>
+              <th>Order date</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (order of sellerOrders; track order.id) {
+              <tr>
+                <td>{{ order.productName }}</td>
+                <td>{{ order.quantity }}</td>
+                <td>₹{{ order.unitPrice }}</td>
+                <td><strong>₹{{ order.totalPrice }}</strong></td>
+                <td>{{ order.orderDate | date:'mediumDate' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
 </main>

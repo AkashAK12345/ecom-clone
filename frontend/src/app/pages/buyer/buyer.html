@@ -166,4 +166,43 @@
       <p>No products found.</p>
     }
   </section>
+
+  @if (authService.isLoggedIn() && authService.getRole() === 'Buyer') {
+    <section class="my-orders-section">
+      <h2>My orders</h2>
+
+      @if (loadingOrders) {
+        <p class="orders-loading">Loading your orders...</p>
+      } @else if (ordersErrorMessage) {
+        <p class="order-error">{{ ordersErrorMessage }}</p>
+      } @else if (myOrders.length === 0) {
+        <p class="no-orders">No orders placed yet.</p>
+      } @else {
+        <div class="orders-table-wrapper">
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Unit price</th>
+                <th>Total price</th>
+                <th>Order date</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (order of myOrders; track order.id) {
+                <tr>
+                  <td>{{ order.productName }}</td>
+                  <td>{{ order.quantity }}</td>
+                  <td>₹{{ order.unitPrice }}</td>
+                  <td><strong>₹{{ order.totalPrice }}</strong></td>
+                  <td>{{ order.orderDate | date:'mediumDate' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
 </main>

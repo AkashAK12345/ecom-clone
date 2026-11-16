@@ -155,3 +155,15 @@ This document records technical issues, environment hurdles, root causes, and ve
   3. **Seller Ownership Authorization on Reviews**: Implemented `GET /api/reviews/seller/{productId}` verifying that `product.SellerId == currentSellerId`, returning `403 Forbidden` if an unauthorized seller queries reviews for a product they do not own.
   4. **Public Catalog Access**: Kept `GET /api/reviews/product/{productId}` open for public browsing on buyer product cards.
 
+### 2.9 Order History Architecture: JWT-Based Buyer Attribution, Seller Scoping, and Safe Migration
+* **Symptom / Requirements**: Historical orders lacked buyer attribution (`Order` entity only tracked `ProductId`, `Quantity`, `UnitPrice`, `TotalPrice`, and `OrderDate`). Introducing order histories required attributing new orders to the logged-in buyer without client-side spoofing, enforcing seller scoping so sellers only see orders placed for their own products, protecting buyer privacy (no buyer email exposed to sellers), and preserving legacy orders without data loss.
+* **Fix**:
+  1. **Safe Migration for Legacy Orders**: Added `public int? BuyerId { get; set; }` and navigation `public User? Buyer { get; set; }` to `Order.cs`, configured in EF Core with `OnDelete: DeleteBehavior.SetNull`. Older orders persist with `NULL` `BuyerId` and remain intact in PostgreSQL.
+  2. **Server-Side Buyer Attribution**: In `POST /api/orders`, extracted the buyer's user ID directly from validated JWT claims (`ClaimTypes.NameIdentifier` / `sub`). The client request body supplies only `productId` and `quantity`.
+  3. **Privacy-Conscious History DTO**: Created `OrderHistoryDto` returning only transactional data (`Id`, `ProductId`, `ProductName`, `Quantity`, `UnitPrice`, `TotalPrice`, `OrderDate`). The buyer's email and user identity are intentionally omitted, ensuring sellers can review fulfillment data without accessing buyer personal data.
+  4. **Scoped Query Endpoints**:
+     - `GET /api/orders/buyer` (`[Authorize(Roles = "Buyer")]`): Filters orders strictly by `o.BuyerId == currentBuyerId`.
+     - `GET /api/orders/seller` (`[Authorize(Roles = "Seller")]`): Joins on `Product` and filters by `o.Product.SellerId == currentSellerId`, preventing cross-seller order visibility.
+  5. **Zoneless Angular Re-rendering**: Injected `ChangeDetectorRef` and invoked `markForCheck()` inside `loadMyOrders()` and `loadSellerOrders()` async subscriptions, ensuring newly placed orders and historical tables update immediately.
+
+
