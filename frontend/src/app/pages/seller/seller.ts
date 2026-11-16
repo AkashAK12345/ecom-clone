@@ -32,13 +32,17 @@ export class Seller implements OnInit {
   }
 
   loadProducts(): void {
-    this.productService.getProducts().subscribe({
+    this.productService.getSellerProducts().subscribe({
       next: (products) => {
         this.products = products;
         this.cdr.markForCheck();
       },
-      error: () => {
-        this.message = 'Could not load products.';
+      error: (err) => {
+        if (err?.status === 401 || err?.status === 403) {
+          this.message = 'Please log in with a Seller account to view your products.';
+        } else {
+          this.message = 'Could not load products.';
+        }
         this.cdr.markForCheck();
       }
     });
@@ -161,7 +165,9 @@ export class Seller implements OnInit {
           this.cdr.markForCheck();
         },
         error: (err) => {
-          if (err?.status === 401 || err?.status === 403) {
+          if (err?.status === 403) {
+            this.message = typeof err?.error === 'string' ? err.error : 'You do not have permission to edit this product.';
+          } else if (err?.status === 401) {
             this.message = 'You must be logged in as a Seller to update products.';
           } else if (typeof err?.error === 'string') {
             this.message = err.error;

@@ -139,3 +139,11 @@ This document records technical issues, environment hurdles, root causes, and ve
   2. Stored the JWT secret securely in .NET Secret Manager (`dotnet user-secrets set "JwtSettings:Secret" "<secret>"`), keeping sensitive credentials out of `appsettings.json` and version control.
   3. Added role claims to the JWT payload (`ClaimTypes.Role`) so backend `[Authorize(Roles = "Seller")]` and `[Authorize(Roles = "Buyer")]` attributes enforce role authorization deterministically.
 
+### 2.7 Resource Ownership & Safe Migration for Legacy Data
+* **Symptom / Error**: Products created prior to authentication had no seller association. Introducing a non-nullable foreign key `SellerId` would break existing records and fail database migrations if no default seller existed. Additionally, relying solely on `[Authorize(Roles = "Seller")]` allowed horizontal privilege escalation (any authenticated seller could modify any other seller's products).
+* **Fix**:
+  1. **Safe Migration**: Defined `SellerId` as a nullable `int?` with a database index and foreign key (`OnDelete: SetNull`). Existing records remain intact with `NULL` seller IDs and continue appearing in the public buyer catalog without data loss or foreign key errors.
+  2. **JWT-Based Ownership Assignment**: In `AddProduct`, retrieved the seller's user ID directly from validated JWT claims (`sub` / `NameIdentifier`) and assigned `product.SellerId = sellerId`. Browser inputs for owner IDs are strictly ignored.
+  3. **Ownership Verification on Edits**: In `UpdateProduct`, compared the authenticated seller ID against `product.SellerId`. If the IDs do not match (or if the product has no assigned seller), the API rejects the edit with `403 Forbidden`.
+  4. **Scoped Seller Queries**: Added `GET /api/products/seller` to return only products belonging to the logged-in seller, while keeping public endpoints (`GET /api/products`) unpartitioned for buyers.
+

@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ECommerce.Api.Models;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace ECommerce.Api.Controllers;
 
@@ -20,11 +22,30 @@ public class ProductsController : ControllerBase
         _env = env;
     }
 
+    private int? GetCurrentUserId()
+    {
+        var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                   ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                   ?? User.FindFirst("sub")?.Value;
+
+        if (int.TryParse(idClaim, out var userId))
+        {
+            return userId;
+        }
+
+        return null;
+    }
+
     [HttpPost]
     [Consumes("multipart/form-data")]
     [Authorize(Roles = "Seller")]
     public async Task<IActionResult> AddProduct([FromForm] CreateProductDto dto)
     {
+        var sellerId = GetCurrentUserId();
+        if (sellerId == null)
+        {
+            return Unauthorized("Invalid seller token.");
+        }
         if (dto.Image == null || dto.Image.Length == 0)
         {
             return BadRequest("Product image is required.");
@@ -82,7 +103,8 @@ public class ProductsController : ControllerBase
             Category = dto.Category,
             Price = dto.Price,
             Quantity = dto.Quantity,
-            ImageUrl = relativeUrl
+            ImageUrl = relativeUrl,
+            SellerId = sellerId.Value
         };
 
         _db.Products.Add(product);
@@ -102,15 +124,43 @@ public class ProductsController : ControllerBase
         return Ok(products);
     }
 
+    [HttpGet("seller")]
+    [Authorize(Roles = "Seller")]
+    public async Task<IActionResult> GetSellerProducts()
+    {
+        var sellerId = GetCurrentUserId();
+        if (sellerId == null)
+        {
+            return Unauthorized("Invalid seller token.");
+        }
+
+        var products = await _db.Products
+            .Where(p => p.SellerId == sellerId.Value)
+            .ToListAsync();
+
+        return Ok(products);
+    }
+
     [HttpPut("{id}")]
     [Consumes("multipart/form-data")]
     [Authorize(Roles = "Seller")]
     public async Task<IActionResult> UpdateProduct(int id, [FromForm] UpdateProductDto dto)
     {
+        var sellerId = GetCurrentUserId();
+        if (sellerId == null)
+        {
+            return Unauthorized("Invalid seller token.");
+        }
+
         var product = await _db.Products.FindAsync(id);
         if (product == null)
         {
             return NotFound($"Product with ID {id} was not found.");
+        }
+
+        if (product.SellerId != sellerId.Value)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, "You do not have permission to edit this product.");
         }
 
         if (dto.Quantity < 0 || dto.Quantity > 100000)

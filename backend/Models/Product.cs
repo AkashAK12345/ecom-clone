@@ -25,4 +25,8 @@ public class Product
 
     [StringLength(500)]
     public string? ImageUrl { get; set; }
+
+    public int? SellerId { get; set; }
+
+    public User? Seller { get; set; }
 }

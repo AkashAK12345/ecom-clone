@@ -10,6 +10,7 @@ export interface Product {
   price: number;
   quantity: number;
   imageUrl?: string | null;
+  sellerId?: number | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -19,6 +20,10 @@ export class ProductService {
 
   getProducts(): Observable<Product[]> {
     return this.http.get<Product[]>(this.apiUrl);
+  }
+
+  getSellerProducts(): Observable<Product[]> {
+    return this.http.get<Product[]>(`${this.apiUrl}/seller`);
   }
 
   createProduct(product: FormData | Omit<Product, 'id'>): Observable<Product> {
