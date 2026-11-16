@@ -29,3 +29,4 @@ export const buyerGuard: CanActivateFn = (route, state) => {
   // Guests and buyers are welcome to browse products
   return true;
 };
+
