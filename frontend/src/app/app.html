@@ -7,11 +7,6 @@
       </a>
     </div>
 
-    <div class="nav-links">
-      <a routerLink="/buyer">Buyer: browse products</a>
-      <a routerLink="/seller">Seller: add a product</a>
-    </div>
-
     <div class="auth-links">
       @if (authService.currentUser(); as user) {
         <span class="user-badge">{{ user.email }} ({{ user.role }})</span>
