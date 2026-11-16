@@ -184,6 +184,23 @@ This document records technical issues, environment hurdles, root causes, and ve
   3. **Touch Target Sizing & Interactive Feedback**: Increased button and chip padding to provide comfortable touch targets on mobile devices. Styled interactive states (`:hover`, `:focus`, `:active`, and `:disabled`) with distinct visual cues.
   4. **Angular Style Budget Calibration (`angular.json`)**: Adjusted `anyComponentStyle` production budgets in `angular.json` (`maximumWarning: 15kB`, `maximumError: 30kB`) to cleanly accommodate self-contained responsive CSS rules without triggering build warnings.
 
+### 2.12 Seller Area Redesign: Dashboard Navigation, Child Routes, and Inline SVG Architecture
+* **Symptom / Requirements**: Previously, the Seller page placed the product creation form, full product catalog, reviews drawers, and order history into one long monolithic page. The user requested redesigning the Seller area into a clean Seller Dashboard (`/seller`) with three primary icon navigation options (Add Product, My Products, Orders for My Products) leading to dedicated seller views (`/seller/add-product`, `/seller/products`, `/seller/orders`), keeping all routes protected by the Seller auth guard, with clear navigation to return to the dashboard and visible active route indicators.
+* **Fix**:
+  1. **Hierarchical Child Route Architecture (`app.routes.ts`)**:
+     - Configured `/seller` as a parent layout route loading `SellerLayout` with `canActivate: [sellerGuard]`.
+     - Defined child routes for `''` (`SellerDashboard`), `'add-product'` (`SellerAddProduct`), `'products'` (`SellerProducts`), and `'orders'` (`SellerOrders`), each explicitly guarded by `sellerGuard` for complete route protection.
+  2. **Seller Sub-Navigation & Active State**:
+     - Built a responsive seller sub-navigation bar in `SellerLayout` using `routerLinkActive="active"` and `[routerLinkActiveOptions]="{ exact: true }"` for the Dashboard tab.
+     - Provided a prominent `← Back to Dashboard` navigation link across all sub-views (`/seller/add-product`, `/seller/products`, `/seller/orders`), giving sellers two direct ways to return to the dashboard.
+  3. **Accessible Inline SVG Icon Buttons**:
+     - Standardized on lightweight, dependency-free inline SVG icons with `aria-hidden="true"`, stroke-based styling (`viewBox="0 0 24 24"`), and accompanying visible text labels for accessibility (WCAG AA compliant).
+  4. **Seamless Edit Flow via Query Params**:
+     - Updated the "✎ Edit" action on product cards in `/seller/products` to navigate to `/seller/add-product?edit={productId}`.
+     - `SellerAddProduct` reads the query param, pre-populates product details and clothing size inventories, provides a "Cancel edit" option returning to `/seller/products`, and confirms updates with clear feedback.
+  5. **Business Logic & Service Preservation**:
+     - Reused `ProductService` methods (`getSellerProducts`, `createProduct`, `updateProduct`, `getSellerOrders`, `getSellerProductReviews`) across all child views, preserving all size inventory, reviews, and ordering functionality without code duplication.
+
 
 
 
