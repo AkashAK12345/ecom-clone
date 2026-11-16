@@ -93,7 +93,7 @@ namespace backend.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("SellerId")
+                    b.Property<int>("SellerId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
@@ -221,7 +221,8 @@ namespace backend.Migrations
                     b.HasOne("ECommerce.Api.Models.User", "Seller")
                         .WithMany()
                         .HasForeignKey("SellerId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Seller");
                 });
