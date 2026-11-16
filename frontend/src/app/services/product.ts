@@ -13,6 +13,23 @@ export interface Product {
   sellerId?: number | null;
 }
 
+export interface Review {
+  id: number;
+  productId: number;
+  productName: string;
+  buyerId: number;
+  buyerEmail: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
+export interface CreateReviewRequest {
+  productId: number;
+  rating: number;
+  comment: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ProductService {
   private http = inject(HttpClient);
@@ -37,6 +54,18 @@ export class ProductService {
   placeOrder(productId: number, quantity: number): Observable<any> {
     const ordersUrl = this.apiUrl.replace(/\/products\/?$/, '/orders');
     return this.http.post(ordersUrl, { productId, quantity });
+  }
+
+  getProductReviews(productId: number): Observable<Review[]> {
+    return this.http.get<Review[]>(`http://localhost:5000/api/reviews/product/${productId}`);
+  }
+
+  createReview(review: CreateReviewRequest): Observable<Review> {
+    return this.http.post<Review>(`http://localhost:5000/api/reviews`, review);
+  }
+
+  getSellerProductReviews(productId: number): Observable<Review[]> {
+    return this.http.get<Review[]>(`http://localhost:5000/api/reviews/seller/${productId}`);
   }
 
   getProductsByCategory(category: string): Observable<Product[]> {

@@ -147,3 +147,11 @@ This document records technical issues, environment hurdles, root causes, and ve
   3. **Ownership Verification on Edits**: In `UpdateProduct`, compared the authenticated seller ID against `product.SellerId`. If the IDs do not match (or if the product has no assigned seller), the API rejects the edit with `403 Forbidden`.
   4. **Scoped Seller Queries**: Added `GET /api/products/seller` to return only products belonging to the logged-in seller, while keeping public endpoints (`GET /api/products`) unpartitioned for buyers.
 
+### 2.8 Product Reviews Architecture: Identity Isolation & Uniqueness Constraints
+* **Symptom / Error**: Product reviews required capturing buyer identity without allowing client-side impersonation (spoofing `buyerId`), enforcing single-review policies, and safeguarding seller privacy so sellers cannot snoop on reviews of competing sellers' products via backend endpoints. Additionally, orders did not record buyer IDs, meaning reviews cannot claim verified purchaser status.
+* **Fix**:
+  1. **Server-Side Buyer Extraction**: Extracted `buyerId` exclusively from the validated JWT claims (`sub` / `NameIdentifier`) in `POST /api/reviews`. The request DTO only takes `productId`, `rating` (1-5), and `comment`.
+  2. **Database-Level Duplicate Prevention**: Added a composite unique index `IX_Reviews_ProductId_BuyerId` on `[ProductId, BuyerId]` in PostgreSQL, paired with an API pre-check returning `409 Conflict` if the buyer already reviewed the product.
+  3. **Seller Ownership Authorization on Reviews**: Implemented `GET /api/reviews/seller/{productId}` verifying that `product.SellerId == currentSellerId`, returning `403 Forbidden` if an unauthorized seller queries reviews for a product they do not own.
+  4. **Public Catalog Access**: Kept `GET /api/reviews/product/{productId}` open for public browsing on buyer product cards.
+

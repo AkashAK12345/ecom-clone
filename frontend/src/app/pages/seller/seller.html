@@ -112,9 +112,46 @@
           }
         </p>
 
-        <button type="button" (click)="editProduct(product, fileInput)">
-          Edit
-        </button>
+        <div class="seller-card-actions">
+          <button type="button" (click)="editProduct(product, fileInput)">
+            Edit
+          </button>
+          <button
+            type="button"
+            class="seller-reviews-btn"
+            (click)="toggleReviews(product.id)"
+          >
+            {{ expandedReviews[product.id] ? 'Hide Reviews' : 'View Reviews' }}
+            @if (productReviews[product.id]) {
+              ({{ productReviews[product.id].length }})
+            }
+          </button>
+        </div>
+
+        @if (expandedReviews[product.id]) {
+          <div class="seller-reviews-panel">
+            <h4>Customer Reviews</h4>
+
+            @if (loadingReviews[product.id]) {
+              <p class="reviews-loading">Loading reviews...</p>
+            } @else if (reviewError[product.id]) {
+              <p class="review-error">{{ reviewError[product.id] }}</p>
+            } @else {
+              @for (review of productReviews[product.id]; track review.id) {
+                <div class="seller-review-item">
+                  <div class="review-header">
+                    <span class="review-stars">{{ getStars(review.rating) }}</span>
+                    <span class="review-buyer">{{ review.buyerEmail }}</span>
+                    <small class="review-date">{{ review.createdAt | date:'shortDate' }}</small>
+                  </div>
+                  <p class="review-comment">{{ review.comment }}</p>
+                </div>
+              } @empty {
+                <p class="no-reviews">No reviews for this product yet.</p>
+              }
+            }
+          </div>
+        }
       </article>
     } @empty {
       <p>No products listed yet.</p>

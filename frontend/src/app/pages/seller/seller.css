@@ -46,3 +46,93 @@
   color: white;
 }
 
+.seller-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.seller-reviews-btn {
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ccc;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.seller-reviews-btn:hover {
+  background-color: #e4e4e4;
+}
+
+.seller-reviews-panel {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.seller-reviews-panel h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.seller-review-item {
+  padding: 0.5rem;
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  margin-bottom: 0.35rem;
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+.review-stars {
+  color: #f59e0b;
+  font-size: 1rem;
+  letter-spacing: 1px;
+}
+
+.review-buyer {
+  font-weight: 600;
+  color: #444;
+}
+
+.review-date {
+  color: #888;
+}
+
+.review-comment {
+  margin: 0.25rem 0 0;
+  color: #333;
+  line-height: 1.3;
+}
+
+.no-reviews {
+  color: #777;
+  font-style: italic;
+  margin: 0.25rem 0;
+}
+
+.reviews-loading {
+  color: #666;
+  font-style: italic;
+}
+
+.review-error {
+  color: #d32f2f;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+

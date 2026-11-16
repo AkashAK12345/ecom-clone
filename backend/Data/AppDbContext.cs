@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Product> Products { get; set; } = null!;
     public DbSet<Order> Orders { get; set; } = null!;
     public DbSet<User> Users { get; set; } = null!;
+    public DbSet<Review> Reviews { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -27,5 +28,21 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(p => p.SellerId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Review>()
+            .HasIndex(r => new { r.ProductId, r.BuyerId })
+            .IsUnique();
+
+        modelBuilder.Entity<Review>()
+            .HasOne(r => r.Product)
+            .WithMany()
+            .HasForeignKey(r => r.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Review>()
+            .HasOne(r => r.Buyer)
+            .WithMany()
+            .HasForeignKey(r => r.BuyerId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

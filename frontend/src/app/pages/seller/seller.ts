@@ -1,11 +1,12 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Product, ProductService } from '../../services/product';
+import { DatePipe } from '@angular/common';
+import { Product, ProductService, Review } from '../../services/product';
 
 @Component({
   selector: 'app-seller',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, DatePipe],
   templateUrl: './seller.html',
   styleUrl: './seller.css'
 })
@@ -18,6 +19,11 @@ export class Seller implements OnInit {
   selectedFile: File | null = null;
   editingProductId: number | null = null;
   editingProductCurrentImageUrl: string | null = null;
+
+  expandedReviews: { [productId: number]: boolean } = {};
+  productReviews: { [productId: number]: Review[] } = {};
+  loadingReviews: { [productId: number]: boolean } = {};
+  reviewError: { [productId: number]: string } = {};
 
   newProduct = {
     name: '',
@@ -205,5 +211,39 @@ export class Seller implements OnInit {
 
   addProduct(fileInput?: HTMLInputElement): void {
     this.saveProduct(fileInput);
+  }
+
+  toggleReviews(productId: number): void {
+    this.expandedReviews[productId] = !this.expandedReviews[productId];
+    if (this.expandedReviews[productId]) {
+      this.loadReviews(productId);
+    }
+    this.cdr.markForCheck();
+  }
+
+  loadReviews(productId: number): void {
+    this.loadingReviews[productId] = true;
+    this.reviewError[productId] = '';
+    this.productService.getSellerProductReviews(productId).subscribe({
+      next: (reviews) => {
+        this.loadingReviews[productId] = false;
+        this.productReviews[productId] = reviews;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.loadingReviews[productId] = false;
+        if (err?.status === 403) {
+          this.reviewError[productId] = 'You do not have permission to view reviews for this product.';
+        } else {
+          this.reviewError[productId] = 'Could not load reviews.';
+        }
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  getStars(rating: number): string {
+    const full = Math.min(Math.max(rating, 1), 5);
+    return '★'.repeat(full) + '☆'.repeat(5 - full);
   }
 }

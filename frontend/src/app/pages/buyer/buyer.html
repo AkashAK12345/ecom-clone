@@ -75,6 +75,92 @@
             </button>
           </div>
         }
+
+        <div class="reviews-section">
+          <button
+            type="button"
+            class="reviews-toggle-btn"
+            (click)="toggleReviews(product.id)"
+          >
+            {{ expandedReviews[product.id] ? '▲ Hide Reviews' : '▼ Reviews' }}
+            @if (productReviews[product.id]) {
+              ({{ productReviews[product.id].length }})
+            }
+          </button>
+
+          @if (expandedReviews[product.id]) {
+            <div class="reviews-container">
+              <h3>Customer Reviews</h3>
+
+              @if (loadingReviews[product.id]) {
+                <p class="reviews-loading">Loading reviews...</p>
+              } @else {
+                <div class="reviews-list">
+                  @for (review of productReviews[product.id]; track review.id) {
+                    <div class="review-item">
+                      <div class="review-header">
+                        <span class="review-stars">{{ getStars(review.rating) }}</span>
+                        <span class="review-buyer">{{ review.buyerEmail }}</span>
+                        <small class="review-date">{{ review.createdAt | date:'shortDate' }}</small>
+                      </div>
+                      <p class="review-comment">{{ review.comment }}</p>
+                    </div>
+                  } @empty {
+                    <p class="no-reviews">No reviews yet for this product.</p>
+                  }
+                </div>
+
+                @if (authService.isLoggedIn() && authService.getRole() === 'Buyer') {
+                  @if (hasBuyerReviewed(product.id)) {
+                    <p class="already-reviewed-notice">✓ You have already reviewed this product.</p>
+                  } @else {
+                    <div class="add-review-form">
+                      <h4>Write a Review</h4>
+                      <label [for]="'review-rating-' + product.id">Rating:</label>
+                      <select
+                        [id]="'review-rating-' + product.id"
+                        [(ngModel)]="newReview[product.id].rating"
+                      >
+                        <option [ngValue]="5">5 - Excellent</option>
+                        <option [ngValue]="4">4 - Very Good</option>
+                        <option [ngValue]="3">3 - Average</option>
+                        <option [ngValue]="2">2 - Poor</option>
+                        <option [ngValue]="1">1 - Terrible</option>
+                      </select>
+
+                      <label [for]="'review-comment-' + product.id">Comment:</label>
+                      <textarea
+                        [id]="'review-comment-' + product.id"
+                        [(ngModel)]="newReview[product.id].comment"
+                        placeholder="Share your thoughts about this product..."
+                        rows="3"
+                      ></textarea>
+
+                      <button
+                        type="button"
+                        (click)="submitReview(product.id)"
+                        [disabled]="submittingReview[product.id]"
+                        class="submit-review-btn"
+                      >
+                        {{ submittingReview[product.id] ? 'Submitting...' : 'Submit Review' }}
+                      </button>
+                    </div>
+                  }
+                } @else if (!authService.isLoggedIn()) {
+                  <p class="login-to-review-hint">Log in as a Buyer to write a review.</p>
+                }
+
+                @if (reviewMessage[product.id]) {
+                  <p class="review-success">{{ reviewMessage[product.id] }}</p>
+                }
+
+                @if (reviewErrorMessage[product.id]) {
+                  <p class="review-error">{{ reviewErrorMessage[product.id] }}</p>
+                }
+              }
+            </div>
+          }
+        </div>
       </article>
     } @empty {
       <p>No products found.</p>
