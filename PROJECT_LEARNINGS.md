@@ -59,11 +59,10 @@ This document records technical issues, environment hurdles, root causes, and ve
 ### 1.7 EF Core Migrations Command Execution Context
 * **Symptom / Error**: `dotnet ef` fails if executed without context or fails to locate project files.
 * **Cause**: EF Core commands must either be run inside the project directory or point explicitly to the target project using the `--project` flag.
-* **Fix**: Always specify the project flag or navigate into the backend folder:
+* **Fix**: Always specify the project flag or project file path explicitly from the repository root:
   ```powershell
   cd C:\dev\e-commerce
-  dotnet ef migrations add <MigrationName> --project backend
-  dotnet ef database update --project backend
+  dotnet ef database update --project .\backend\backend.csproj
   ```
 
 ### 1.8 npm Dependency Resolution (`edgesOut` Error)
@@ -77,7 +76,9 @@ This document records technical issues, environment hurdles, root causes, and ve
 ### 1.9 Stale Background Dev Server Serving Outdated Build on Port 4200
 * **Symptom / Error**: After implementing new templates, components, and routing (such as auth links and navigation), the browser continues to display old pre-auth pages without the new links.
 * **Cause**: An earlier `ng serve` process started hours prior remained running in the background holding port 4200, serving stale cached pre-rendered pages instead of current code.
-* **Fix**: Inspect listening ports with `netstat -ano | findstr 4200` or `Get-NetTCPConnection -LocalPort 4200`, terminate the stale process (`Stop-Process -Id <PID> -Force`), and restart the dev server with `npm start` (or `cmd /c "npm --prefix frontend start"`).
+* **Fix**:
+  1. During normal development, always stop a running Angular dev server by pressing `Ctrl + C` in its dedicated terminal window (allowing Node and the Angular CLI to release the port gracefully), rather than closing or killing all Node processes system-wide.
+  2. If an orphaned process is holding port 4200, locate and terminate only that specific PID (`Get-NetTCPConnection -LocalPort 4200 | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }`), then restart cleanly with `npm.cmd start`.
 
 ---
 

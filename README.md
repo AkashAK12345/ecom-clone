@@ -47,9 +47,10 @@ The project uses Entity Framework Core with Code-First migrations in PostgreSQL.
    }
    ```
 
-2. Apply all pending database migrations:
+2. Open a terminal in `C:\dev\e-commerce` and apply all pending database migrations:
    ```powershell
-   dotnet ef database update --project backend
+   cd C:\dev\e-commerce
+   dotnet ef database update --project .\backend\backend.csproj
    ```
    > **Note**: This creates all required tables (`Products`, `ProductSizes`, `Orders`, `Users`, `Reviews`) and safely backfills legacy records with a default `'One Size'` variant.
 
@@ -57,22 +58,43 @@ The project uses Entity Framework Core with Code-First migrations in PostgreSQL.
 
 ## 🚀 Running the Application
 
-Open two separate terminal windows to run the backend and frontend:
+Open **two separate terminal windows** to run the backend and frontend simultaneously. The backend terminal must stay open while using or demoing the app.
 
 ### Terminal 1: Backend (.NET 10 Web API)
+From `C:\dev\e-commerce\backend`, build the project, set the environment variable `ASPNETCORE_ENVIRONMENT` to `Development`, and run the compiled assembly:
+
+**PowerShell**:
 ```powershell
-cd backend
-dotnet run
+cd C:\dev\e-commerce\backend
+dotnet build
+$env:ASPNETCORE_ENVIRONMENT="Development"
+dotnet .\bin\Debug\net10.0\backend.dll
 ```
+
+**Command Prompt (cmd)**:
+```cmd
+cd C:\dev\e-commerce\backend
+dotnet build
+set ASPNETCORE_ENVIRONMENT=Development
+dotnet .\bin\Debug\net10.0\backend.dll
+```
+
 - API Base URL: `http://localhost:5000`
 - Swagger UI (Development): `http://localhost:5000/swagger`
+- **Important**: Keep this terminal window open. Closing it will shut down the Web API.
+
+---
 
 ### Terminal 2: Frontend (Angular 21)
+Open a **separate terminal window** for the frontend and start the Angular development server using `npm.cmd` (which avoids Windows PowerShell `.ps1` execution policy restrictions):
+
 ```powershell
-cd frontend
-npm start
+cd C:\dev\e-commerce\frontend
+npm.cmd start
 ```
-- Web App URL: `http://localhost:4200`
+
+- When the compilation completes, open the URL printed by Angular in your browser (usually **`http://localhost:4200`**).
+- **Stopping the dev server**: To stop the running Angular development server, press `Ctrl + C` in its own terminal window (and type `Y` if prompted). Do not kill all Node processes system-wide.
 
 ---
 
@@ -140,3 +162,4 @@ e-commerce/
 ├── PROJECT_LEARNINGS.md      # Troubleshooting notes, errors & architectural decisions
 └── README.md                 # Setup, configuration & demo guide
 ```
+
