@@ -203,7 +203,7 @@ namespace backend.Migrations
                     b.HasOne("ECommerce.Api.Models.User", "Buyer")
                         .WithMany()
                         .HasForeignKey("BuyerId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("ECommerce.Api.Models.Product", "Product")
                         .WithMany()

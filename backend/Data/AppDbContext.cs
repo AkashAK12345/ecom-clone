@@ -60,6 +60,6 @@ public class AppDbContext : DbContext
             .HasOne(o => o.Buyer)
             .WithMany()
             .HasForeignKey(o => o.BuyerId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
