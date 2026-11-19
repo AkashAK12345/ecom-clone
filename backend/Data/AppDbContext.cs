@@ -8,7 +8,14 @@ public class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
     {
+    
     }
+
+    // protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    // {
+    //     base.OnConfiguring(optionsBuilder);
+    //     optionsBuilder.LogTo(Console.WriteLine , LogLevel.Information);
+    // }
 
     public DbSet<Product> Products { get; set; } = null!;
     public DbSet<ProductSize> ProductSizes { get; set; } = null!;

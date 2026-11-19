@@ -1,5 +1,9 @@
 using System.Text;
 using ECommerce.Api.Data;
+using ECommerce.Api.Repositories;
+using ECommerce.Api.Repositories.Interfaces;
+using ECommerce.Api.Services;
+using ECommerce.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -37,6 +41,14 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
     };
 });
+
+// --- Products: Repository → Service (Controller → Service → Repository → AppDbContext) ---
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IProductService, ProductService>();
+
+// --- Orders: Repository → Service (Controller → Service → Repository → AppDbContext) ---
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderService, OrderService>();
 
 builder.Services.AddControllers();
 builder.Services.AddCors(options =>

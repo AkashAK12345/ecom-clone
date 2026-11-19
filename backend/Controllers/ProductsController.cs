@@ -1,27 +1,31 @@
-using ECommerce.Api.Data;
+using ECommerce.Api.Models;
+using ECommerce.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using ECommerce.Api.Models;
-using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
-using System.Text.Json;
+using System.Security.Claims;
 
 namespace ECommerce.Api.Controllers;
 
+/// <summary>
+/// Thin HTTP layer for the Products domain.
+/// Responsibilities: receive requests, read JWT claims, call IProductService, return HTTP responses.
+/// No business logic, no database access, no file I/O here.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class ProductsController : ControllerBase
 {
-    
-    private readonly AppDbContext _db;
-    private readonly IWebHostEnvironment _env;
+    private readonly IProductService _productService;
 
-    public ProductsController(AppDbContext db, IWebHostEnvironment env)
+    public ProductsController(IProductService productService)
     {
-        _db = db;
-        _env = env;
+        _productService = productService;
     }
+
+    // -------------------------------------------------------------------------
+    // Helper: extract authenticated user ID from JWT claims
+    // -------------------------------------------------------------------------
 
     private int? GetCurrentUserId()
     {
@@ -29,301 +33,86 @@ public class ProductsController : ControllerBase
                    ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
                    ?? User.FindFirst("sub")?.Value;
 
-        if (int.TryParse(idClaim, out var userId))
-        {
-            return userId;
-        }
-
-        return null;
+        return int.TryParse(idClaim, out var id) ? id : null;
     }
 
-    private static List<ProductSizeDto> ParseSizes(string? sizesJson, int fallbackQuantity)
+    // -------------------------------------------------------------------------
+    // GET /api/products — public buyer catalog
+    // -------------------------------------------------------------------------
+
+    [HttpGet]
+    public async Task<IActionResult> GetProducts(CancellationToken ct)
     {
-        var result = new List<ProductSizeDto>();
-        if (!string.IsNullOrWhiteSpace(sizesJson))
-        {
-            try
-            {
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var parsed = JsonSerializer.Deserialize<List<ProductSizeDto>>(sizesJson, options);
-                if (parsed != null)
-                {
-                    result = parsed;
-                }
-            }
-            catch
-            {
-                // Fallback to empty
-            }
-        }
-
-        var cleaned = new List<ProductSizeDto>();
-        var seenSizes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var item in result)
-        {
-            var sizeName = item.Size?.Trim();
-            if (string.IsNullOrWhiteSpace(sizeName)) continue;
-            if (seenSizes.Contains(sizeName)) continue;
-
-            seenSizes.Add(sizeName);
-            cleaned.Add(new ProductSizeDto
-            {
-                Size = sizeName,
-                Quantity = Math.Clamp(item.Quantity, 0, 100000)
-            });
-        }
-
-        if (cleaned.Count == 0)
-        {
-            cleaned.Add(new ProductSizeDto
-            {
-                Size = "One Size",
-                Quantity = Math.Clamp(fallbackQuantity, 0, 100000)
-            });
-        }
-
-        return cleaned;
+        var result = await _productService.GetAllProductsAsync(ct);
+        return Ok(result.Value);
     }
+
+    // -------------------------------------------------------------------------
+    // GET /api/products/seller — seller's own products
+    // -------------------------------------------------------------------------
+
+    [HttpGet("seller")]
+    [Authorize(Roles = "Seller")]
+    public async Task<IActionResult> GetSellerProducts(CancellationToken ct)
+    {
+        var sellerId = GetCurrentUserId();
+        if (sellerId == null)
+            return Unauthorized("Invalid seller token.");
+
+        var result = await _productService.GetSellerProductsAsync(sellerId.Value, ct);
+        return Ok(result.Value);
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /api/products/category/{category} — public category filter
+    // -------------------------------------------------------------------------
+
+    [HttpGet("category/{category}")]
+    public async Task<IActionResult> GetByCategory(string category, CancellationToken ct)
+    {
+        var result = await _productService.GetProductsByCategoryAsync(category, ct);
+        return Ok(result.Value);
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /api/products — add a new product (seller only)
+    // -------------------------------------------------------------------------
 
     [HttpPost]
     [Consumes("multipart/form-data")]
     [Authorize(Roles = "Seller")]
-    public async Task<IActionResult> AddProduct([FromForm] CreateProductDto dto)
+    public async Task<IActionResult> AddProduct([FromForm] CreateProductDto dto, CancellationToken ct)
     {
         var sellerId = GetCurrentUserId();
         if (sellerId == null)
-        {
             return Unauthorized("Invalid seller token.");
-        }
-        if (dto.Image == null || dto.Image.Length == 0)
-        {
-            return BadRequest("Product image is required.");
-        }
 
-        if (dto.Quantity < 0 || dto.Quantity > 100000)
-        {
-            return BadRequest("Stock quantity must be between 0 and 100,000.");
-        }
+        var result = await _productService.AddProductAsync(sellerId.Value, dto, ct);
 
-        const long maxFileSize = 5 * 1024 * 1024; // 5 MB
-        if (dto.Image.Length > maxFileSize)
-        {
-            return BadRequest("Image file size cannot exceed 5 MB.");
-        }
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result.Error);
 
-        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
-        var extension = Path.GetExtension(dto.Image.FileName).ToLowerInvariant();
-        if (string.IsNullOrEmpty(extension) || !allowedExtensions.Contains(extension))
-        {
-            return BadRequest("Invalid image format. Allowed formats are: .jpg, .jpeg, .png, .webp, .gif.");
-        }
-
-        if (string.IsNullOrEmpty(dto.Image.ContentType) || !dto.Image.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-        {
-            return BadRequest("Uploaded file is not a valid image.");
-        }
-
-        var webRoot = _env.WebRootPath;
-        if (string.IsNullOrEmpty(webRoot))
-        {
-            webRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-        }
-
-        var uploadsFolder = Path.Combine(webRoot, "uploads", "products");
-        if (!Directory.Exists(uploadsFolder))
-        {
-            Directory.CreateDirectory(uploadsFolder);
-        }
-
-        var uniqueFileName = $"{Guid.NewGuid()}{extension}";
-        var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-        using (var stream = new FileStream(filePath, FileMode.Create))
-        {
-            await dto.Image.CopyToAsync(stream);
-        }
-
-        var relativeUrl = $"/uploads/products/{uniqueFileName}";
-
-        var parsedSizes = ParseSizes(dto.SizesJson, dto.Quantity);
-        var totalQuantity = parsedSizes.Sum(s => s.Quantity);
-
-        var product = new Product
-        {
-            Name = dto.Name,
-            Description = dto.Description,
-            Category = dto.Category,
-            Price = dto.Price,
-            Quantity = totalQuantity,
-            ImageUrl = relativeUrl,
-            SellerId = sellerId.Value,
-            Sizes = parsedSizes.Select(s => new ProductSize
-            {
-                Size = s.Size,
-                Quantity = s.Quantity
-            }).ToList()
-        };
-
-        _db.Products.Add(product);
-        await _db.SaveChangesAsync();
-
-        return CreatedAtAction(
-            nameof(GetProducts),
-            new { id = product.Id },
-            product
-        );
+        return CreatedAtAction(nameof(GetProducts), new { id = result.Value!.Id }, result.Value);
     }
 
-    [HttpGet]
-    public async Task<IActionResult> GetProducts()
-    {
-        var products = await _db.Products
-            .Include(p => p.Sizes.OrderBy(s => s.Id))
-            .ToListAsync();
-        return Ok(products);
-    }
-
-    [HttpGet("seller")]
-    [Authorize(Roles = "Seller")]
-    public async Task<IActionResult> GetSellerProducts()
-    {
-        var sellerId = GetCurrentUserId();
-        if (sellerId == null)
-        {
-            return Unauthorized("Invalid seller token.");
-        }
-
-        var products = await _db.Products
-            .Include(p => p.Sizes.OrderBy(s => s.Id))
-            .Where(p => p.SellerId == sellerId.Value)
-            .ToListAsync();
-
-        return Ok(products);
-    }
+    // -------------------------------------------------------------------------
+    // PUT /api/products/{id} — update an existing product (seller only)
+    // -------------------------------------------------------------------------
 
     [HttpPut("{id}")]
     [Consumes("multipart/form-data")]
     [Authorize(Roles = "Seller")]
-    public async Task<IActionResult> UpdateProduct(int id, [FromForm] UpdateProductDto dto)
+    public async Task<IActionResult> UpdateProduct(int id, [FromForm] UpdateProductDto dto, CancellationToken ct)
     {
         var sellerId = GetCurrentUserId();
         if (sellerId == null)
-        {
             return Unauthorized("Invalid seller token.");
-        }
 
-        var product = await _db.Products
-            .Include(p => p.Sizes)
-            .FirstOrDefaultAsync(p => p.Id == id);
-        if (product == null)
-        {
-            return NotFound($"Product with ID {id} was not found.");
-        }
+        var result = await _productService.UpdateProductAsync(id, sellerId.Value, dto, ct);
 
-        if (product.SellerId != sellerId.Value)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, "You do not have permission to edit this product.");
-        }
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, result.Error);
 
-        if (dto.Quantity < 0 || dto.Quantity > 100000)
-        {
-            return BadRequest("Stock quantity must be between 0 and 100,000.");
-        }
-
-        if (dto.Image != null && dto.Image.Length > 0)
-        {
-            const long maxFileSize = 5 * 1024 * 1024; // 5 MB
-            if (dto.Image.Length > maxFileSize)
-            {
-                return BadRequest("Image file size cannot exceed 5 MB.");
-            }
-
-            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
-            var extension = Path.GetExtension(dto.Image.FileName).ToLowerInvariant();
-            if (string.IsNullOrEmpty(extension) || !allowedExtensions.Contains(extension))
-            {
-                return BadRequest("Invalid image format. Allowed formats are: .jpg, .jpeg, .png, .webp, .gif.");
-            }
-
-            if (string.IsNullOrEmpty(dto.Image.ContentType) || !dto.Image.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-            {
-                return BadRequest("Uploaded file is not a valid image.");
-            }
-
-            var webRoot = _env.WebRootPath;
-            if (string.IsNullOrEmpty(webRoot))
-            {
-                webRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-            }
-
-            var uploadsFolder = Path.Combine(webRoot, "uploads", "products");
-            if (!Directory.Exists(uploadsFolder))
-            {
-                Directory.CreateDirectory(uploadsFolder);
-            }
-
-            var uniqueFileName = $"{Guid.NewGuid()}{extension}";
-            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await dto.Image.CopyToAsync(stream);
-            }
-
-            product.ImageUrl = $"/uploads/products/{uniqueFileName}";
-        }
-
-        product.Name = dto.Name;
-        product.Description = dto.Description;
-        product.Category = dto.Category;
-        product.Price = dto.Price;
-
-        if (!string.IsNullOrWhiteSpace(dto.SizesJson))
-        {
-            var parsedSizes = ParseSizes(dto.SizesJson, dto.Quantity);
-            var updatedSizeNames = new HashSet<string>(parsedSizes.Select(s => s.Size), StringComparer.OrdinalIgnoreCase);
-
-            // Remove sizes no longer in the list
-            product.Sizes.RemoveAll(s => !updatedSizeNames.Contains(s.Size));
-
-            foreach (var sizeDto in parsedSizes)
-            {
-                var existing = product.Sizes.FirstOrDefault(s => string.Equals(s.Size, sizeDto.Size, StringComparison.OrdinalIgnoreCase));
-                if (existing != null)
-                {
-                    existing.Quantity = sizeDto.Quantity;
-                }
-                else
-                {
-                    product.Sizes.Add(new ProductSize
-                    {
-                        ProductId = product.Id,
-                        Size = sizeDto.Size,
-                        Quantity = sizeDto.Quantity
-                    });
-                }
-            }
-
-            product.Quantity = product.Sizes.Sum(s => s.Quantity);
-        }
-        else
-        {
-            product.Quantity = dto.Quantity;
-        }
-
-        await _db.SaveChangesAsync();
-
-        return Ok(product);
+        return Ok(result.Value);
     }
-     [HttpGet("category/{category}")]
-public async Task<IActionResult> GetByCategory(string category)
-{
-    var products = await _db.Products
-        .Include(p => p.Sizes.OrderBy(s => s.Id))
-        .Where(product => product.Category == category)
-        .ToListAsync();
-
-    return Ok(products);
-}
 }
