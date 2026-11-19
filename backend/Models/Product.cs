@@ -21,7 +21,7 @@ public class Product
     public decimal Price { get; set; }
 
     [Range(0, 100000)]
-    public int Quantity { get; set; } = 10;
+    public int Quantity { get; set; } = 0;
 
     [StringLength(500)]
     public string? ImageUrl { get; set; }
