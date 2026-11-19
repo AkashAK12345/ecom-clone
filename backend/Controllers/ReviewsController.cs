@@ -1,23 +1,31 @@
-using System.Security.Claims;
-using System.IdentityModel.Tokens.Jwt;
-using ECommerce.Api.Data;
 using ECommerce.Api.Models;
+using ECommerce.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace ECommerce.Api.Controllers;
 
+/// <summary>
+/// Thin HTTP layer for the Reviews domain.
+/// Responsibilities: receive requests, read JWT claims, call IReviewService, return HTTP responses.
+/// No business logic, no database access here.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class ReviewsController : ControllerBase
 {
-    private readonly AppDbContext _db;
+    private readonly IReviewService _reviewService;
 
-    public ReviewsController(AppDbContext db)
+    public ReviewsController(IReviewService reviewService)
     {
-        _db = db;
+        _reviewService = reviewService;
     }
+
+    // -------------------------------------------------------------------------
+    // Helper: extract authenticated user ID from JWT claims
+    // -------------------------------------------------------------------------
 
     private int? GetCurrentUserId()
     {
@@ -25,18 +33,16 @@ public class ReviewsController : ControllerBase
                    ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
                    ?? User.FindFirst("sub")?.Value;
 
-        if (int.TryParse(idClaim, out var userId))
-        {
-            return userId;
-        }
-
-        return null;
+        return int.TryParse(idClaim, out var id) ? id : null;
     }
 
-    // POST /api/reviews - Only authenticated buyers can submit reviews
+    // -------------------------------------------------------------------------
+    // POST /api/reviews — authenticated buyers submit a review
+    // -------------------------------------------------------------------------
+
     [HttpPost]
     [Authorize(Roles = "Buyer")]
-    public async Task<IActionResult> CreateReview([FromBody] CreateReviewDto dto)
+    public async Task<IActionResult> CreateReview([FromBody] CreateReviewDto dto, CancellationToken ct)
     {
         if (!ModelState.IsValid)
         {
@@ -49,82 +55,40 @@ public class ReviewsController : ControllerBase
             return Unauthorized("Invalid buyer token.");
         }
 
-        var product = await _db.Products.FindAsync(dto.ProductId);
-        if (product == null)
+        var result = await _reviewService.CreateReviewAsync(buyerId.Value, dto, ct);
+
+        if (!result.IsSuccess)
         {
-            return NotFound($"Product with ID {dto.ProductId} was not found.");
+            return StatusCode(result.StatusCode, result.Error);
         }
 
-        var alreadyReviewed = await _db.Reviews
-            .AnyAsync(r => r.ProductId == dto.ProductId && r.BuyerId == buyerId.Value);
-
-        if (alreadyReviewed)
-        {
-            return Conflict("You have already reviewed this product.");
-        }
-
-        var review = new Review
-        {
-            ProductId = dto.ProductId,
-            BuyerId = buyerId.Value,
-            Rating = dto.Rating,
-            Comment = dto.Comment.Trim(),
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _db.Reviews.Add(review);
-        await _db.SaveChangesAsync();
-
-        var buyer = await _db.Users.FindAsync(buyerId.Value);
-
-        return Ok(new ReviewDto
-        {
-            Id = review.Id,
-            ProductId = review.ProductId,
-            ProductName = product.Name,
-            BuyerId = review.BuyerId,
-            BuyerEmail = buyer?.Email ?? "",
-            Rating = review.Rating,
-            Comment = review.Comment,
-            CreatedAt = review.CreatedAt
-        });
+        return Ok(result.Value);
     }
 
-    // GET /api/reviews/product/{productId} - Public: buyers can view reviews
+    // -------------------------------------------------------------------------
+    // GET /api/reviews/product/{productId} — public: buyers can view reviews
+    // -------------------------------------------------------------------------
+
     [HttpGet("product/{productId}")]
-    public async Task<IActionResult> GetProductReviews(int productId)
+    public async Task<IActionResult> GetProductReviews(int productId, CancellationToken ct)
     {
-        var product = await _db.Products.FindAsync(productId);
-        if (product == null)
+        var result = await _reviewService.GetProductReviewsAsync(productId, ct);
+
+        if (!result.IsSuccess)
         {
-            return NotFound($"Product with ID {productId} was not found.");
+            return StatusCode(result.StatusCode, result.Error);
         }
 
-        var reviews = await _db.Reviews
-            .Include(r => r.Buyer)
-            .Include(r => r.Product)
-            .Where(r => r.ProductId == productId)
-            .OrderByDescending(r => r.CreatedAt)
-            .Select(r => new ReviewDto
-            {
-                Id = r.Id,
-                ProductId = r.ProductId,
-                ProductName = r.Product != null ? r.Product.Name : "",
-                BuyerId = r.BuyerId,
-                BuyerEmail = r.Buyer != null ? r.Buyer.Email : "",
-                Rating = r.Rating,
-                Comment = r.Comment,
-                CreatedAt = r.CreatedAt
-            })
-            .ToListAsync();
-
-        return Ok(reviews);
+        return Ok(result.Value);
     }
 
-    // GET /api/reviews/seller/{productId} - Sellers can view reviews only for their own products
+    // -------------------------------------------------------------------------
+    // GET /api/reviews/seller/{productId} — sellers view reviews for their product
+    // -------------------------------------------------------------------------
+
     [HttpGet("seller/{productId}")]
     [Authorize(Roles = "Seller")]
-    public async Task<IActionResult> GetSellerProductReviews(int productId)
+    public async Task<IActionResult> GetSellerProductReviews(int productId, CancellationToken ct)
     {
         var sellerId = GetCurrentUserId();
         if (sellerId == null)
@@ -132,43 +96,23 @@ public class ReviewsController : ControllerBase
             return Unauthorized("Invalid seller token.");
         }
 
-        var product = await _db.Products.FindAsync(productId);
-        if (product == null)
+        var result = await _reviewService.GetSellerProductReviewsAsync(productId, sellerId.Value, ct);
+
+        if (!result.IsSuccess)
         {
-            return NotFound($"Product with ID {productId} was not found.");
+            return StatusCode(result.StatusCode, result.Error);
         }
 
-        // Enforce ownership check in the API
-        if (product.SellerId != sellerId.Value)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, "You do not have permission to view reviews for this product.");
-        }
-
-        var reviews = await _db.Reviews
-            .Include(r => r.Buyer)
-            .Include(r => r.Product)
-            .Where(r => r.ProductId == productId)
-            .OrderByDescending(r => r.CreatedAt)
-            .Select(r => new ReviewDto
-            {
-                Id = r.Id,
-                ProductId = r.ProductId,
-                ProductName = r.Product != null ? r.Product.Name : "",
-                BuyerId = r.BuyerId,
-                BuyerEmail = r.Buyer != null ? r.Buyer.Email : "",
-                Rating = r.Rating,
-                Comment = r.Comment,
-                CreatedAt = r.CreatedAt
-            })
-            .ToListAsync();
-
-        return Ok(reviews);
+        return Ok(result.Value);
     }
 
-    // GET /api/reviews/seller - Sellers view reviews across all their own products
+    // -------------------------------------------------------------------------
+    // GET /api/reviews/seller — sellers view reviews across all their products
+    // -------------------------------------------------------------------------
+
     [HttpGet("seller")]
     [Authorize(Roles = "Seller")]
-    public async Task<IActionResult> GetAllSellerReviews()
+    public async Task<IActionResult> GetAllSellerReviews(CancellationToken ct)
     {
         var sellerId = GetCurrentUserId();
         if (sellerId == null)
@@ -176,25 +120,8 @@ public class ReviewsController : ControllerBase
             return Unauthorized("Invalid seller token.");
         }
 
-        var reviews = await _db.Reviews
-            .Include(r => r.Buyer)
-            .Include(r => r.Product)
-            .Where(r => r.Product != null && r.Product.SellerId == sellerId.Value)
-            .OrderByDescending(r => r.CreatedAt)
-            .Select(r => new ReviewDto
-            {
-                Id = r.Id,
-                ProductId = r.ProductId,
-                ProductName = r.Product != null ? r.Product.Name : "",
-                BuyerId = r.BuyerId,
-                BuyerEmail = r.Buyer != null ? r.Buyer.Email : "",
-                Rating = r.Rating,
-                Comment = r.Comment,
-                CreatedAt = r.CreatedAt
-            })
-            .ToListAsync();
+        var result = await _reviewService.GetAllSellerReviewsAsync(sellerId.Value, ct);
 
-        return Ok(reviews);
+        return Ok(result.Value);
     }
 }
-

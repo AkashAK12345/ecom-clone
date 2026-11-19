@@ -50,6 +50,10 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 
+// --- Reviews: Repository → Service (Controller → Service → Repository → AppDbContext) ---
+builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
+
 builder.Services.AddControllers();
 builder.Services.AddCors(options =>
 {
